@@ -144,9 +144,7 @@ def deployed_model(nequip_or_allegro, tmpdir, dtype, dataset_options):
         for device in devices:
             command = [
                 "nequip-compile",
-                "--input-path",
                 checkpoint_path,
-                "--output-path",
                 tmpdir + "/" + f"{device}_" + filename,
                 "--mode",
                 mode,
