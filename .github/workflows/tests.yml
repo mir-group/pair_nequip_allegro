@@ -1,6 +1,15 @@
 name: Run LAMMPS-Python tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
 
 concurrency:
   # github.workflow will be the name of the workflow, e.g. "Run Tests"
@@ -11,60 +20,75 @@ concurrency:
 jobs:
   run-tests:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.repository.private == true && 'self-hosted' || 'ubuntu-latest' }}
     strategy:
       matrix:
-        python-version: [3.9]
+        torch-version: ["2.7.1"]
+    container:
+      image: nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04
+      options: ${{ github.event.repository.private && '--gpus all' || ' ' }}
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      env:
-        TORCH: "${{ matrix.torch-version }}"
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        sudo apt update
-        sudo apt install -y cmake
-        python -m pip install --upgrade pip
-        pip install torch --index-url https://download.pytorch.org/whl/cpu
-        pip install pytest
-        torch=$(pip show torch | awk '/Version/ {split($2, v, "+"); print v[1];}') # support 2.5.0+cpu
-        echo torch version: ${torch}
-        wget -q https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-${torch}%2Bcpu.zip -O libtorch.zip
-        unzip libtorch.zip
-    - name: Install MPI
-      run: |
-        sudo apt install -y libopenmpi-dev --fix-missing
-    - name: Install NequIP
-      env:
-          NEQUIP: "${{ matrix.nequip-branch }}"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        pip install "https://github.com/mir-group/nequip/archive/main.zip"
-        pip install "https://github.com/mir-group/allegro/archive/main.zip"
-    - name: Fetch and build LAMMPS
-      run: |
-        mkdir lammps_dir/
-        cd lammps_dir/
-        git clone --depth 1 "https://github.com/lammps/lammps"
-        cd ..
-        ./patch_lammps.sh lammps_dir/lammps/
-        cd lammps_dir/lammps/
-        mkdir build/
-        cd build/
-        cmake ../cmake -DCMAKE_BUILD_TYPE=Release -DPKG_KOKKOS=ON -DKokkos_ENABLE_OPENMP=ON -DCMAKE_PREFIX_PATH=../../../libtorch -DMKL_INCLUDE_DIR=/tmp
-        make -j$(nproc)
-        echo "LAMMPS in dir"
-        pwd
-        ls lmp
-        cd ../../..
-        echo "Now in dir"
-        pwd
-    - name: Run tests with pytest
-      run: |
-        # See https://github.com/pytest-dev/pytest/issues/1075
-        LAMMPS=`pwd`/lammps_dir/lammps/build/lmp pytest tests/
+      - uses: actions/checkout@v4
+      - name: Install Python
+        run: |
+          apt update && apt install -y python3 python3-pip
+          python3 -m pip install --upgrade pip
+      - name: Install system dependencies
+        run: |
+          apt update
+          apt install -y cmake libopenmpi-dev git --fix-missing
+          python3 -m pip install --upgrade pip
+          pip install pytest
+      - name: Install PyTorch
+        env:
+          TORCH: "${{ matrix.torch-version }}"
+        run: |
+          # use CPU only on GH runner
+          if [ "${{ github.event.repository.private }}" = "true" ]; then
+              pip install torch==${TORCH} --upgrade
+          else
+              pip install torch==${TORCH} --index-url https://download.pytorch.org/whl/cpu --upgrade
+          fi
+      - name: Clone NequIP packages
+        uses: mir-group/nequip-gh-actions/clone@main
+        with:
+          package_names: "nequip:allegro"
+          ssh_keys: "${{ secrets.NEQUIP_KEY }}:${{ secrets.ALLEGRO_KEY }}"
+          private_flag: ${{ github.event.repository.private}}
+          branch: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name}}
+      - name: Install Test Dependencies
+        run: |
+          pip install setuptools wheel pytest pytest-xdist[psutil]
+          # install nequip and allegro
+          pip install --upgrade-strategy only-if-needed ./nequip
+          pip install --upgrade-strategy only-if-needed ./allegro
+      - name: Fetch and build LAMMPS
+        run: |
+          mkdir lammps_dir/
+          cd lammps_dir/
+          git clone --depth 1 "https://github.com/lammps/lammps"
+          cd ..
+          ./patch_lammps.sh lammps_dir/lammps/
+          cd lammps_dir/lammps/
+          mkdir build/
+          cd build/
+          if [ "${{ github.event.repository.private }}" = "true" ]; then
+              # Self-hosted: CUDA + OpenMP + AOTI
+              cmake ../cmake -DCMAKE_BUILD_TYPE=Release -DPKG_OPENMP=yes -DPKG_KOKKOS=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=`pwd`/../lib/kokkos/bin/nvcc_wrapper -DCMAKE_PREFIX_PATH=`python3 -c 'import torch;print(torch.utils.cmake_prefix_path)'` -DMKL_INCLUDE_DIR=/tmp -DNEQUIP_AOT_COMPILE=ON
+          else
+              # GitHub runner: OpenMP, no AOTI
+              cmake ../cmake -DCMAKE_BUILD_TYPE=Release -DPKG_OPENMP=yes -DPKG_KOKKOS=ON -DKokkos_ENABLE_OPENMP=ON -DCMAKE_PREFIX_PATH=`python3 -c 'import torch;print(torch.utils.cmake_prefix_path)'` -DMKL_INCLUDE_DIR=/tmp
+          fi
+          make -j$(nproc)
+          echo "LAMMPS in dir"
+          pwd
+          ls lmp
+          cd ../../..
+          echo "Now in dir"
+          pwd
+      - name: Run tests with pytest
+        run: |
+          # See https://github.com/pytest-dev/pytest/issues/1075
+          # need to use env vars to do `mpirun` in container
+          OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1 LAMMPS=`pwd`/lammps_dir/lammps/build/lmp pytest tests/ -vx
