@@ -194,7 +194,7 @@ def test_repro(deployed_nequip_model, compile_mode: str, device: str):
                 (
                     structure_data[AtomicDataDict.EDGE_INDEX_KEY][0],
                     structure_data[AtomicDataDict.EDGE_INDEX_KEY][1],
-                    structure_data[AtomicDataDict.EDGE_LENGTH_KEY],
+                    structure_data[AtomicDataDict.EDGE_LENGTH_KEY].reshape(-1),
                 ),
                 names="i,j,rij",
             )

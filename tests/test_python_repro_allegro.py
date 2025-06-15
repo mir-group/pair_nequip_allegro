@@ -251,11 +251,17 @@ def test_repro(
                         ).tolist()
                     )
                     # check OVERALL "set" of pairwise distance is good
-                    nq_rij = structure_data[AtomicDataDict.EDGE_LENGTH_KEY].clone()
-                    nq_rij, _ = nq_rij.sort()
-                    lammps_rij = mi["rij"].copy().squeeze(-1)
+                    nq_rij = (
+                        structure_data[AtomicDataDict.EDGE_LENGTH_KEY]
+                        .reshape(-1)
+                        .clone()
+                        .numpy()
+                    )
+                    nq_rij.sort()
+                    lammps_rij = mi["rij"].reshape(-1).copy()
                     lammps_rij.sort()
-                    assert np.allclose(nq_rij, lammps_rij)
+                    maxabs = np.max(np.abs(nq_rij - lammps_rij))
+                    assert np.allclose(nq_rij, lammps_rij), f"MaxAbs: {maxabs:.8f}"
                 else:
                     # check same number of i,j edges across both
                     assert Counter(e[:2] for e in lammps_edge_tuples) == Counter(
@@ -266,7 +272,7 @@ def test_repro(
                         (
                             structure_data[AtomicDataDict.EDGE_INDEX_KEY][0],
                             structure_data[AtomicDataDict.EDGE_INDEX_KEY][1],
-                            structure_data[AtomicDataDict.EDGE_LENGTH_KEY],
+                            structure_data[AtomicDataDict.EDGE_LENGTH_KEY].reshape(-1),
                         ),
                         names="i,j,rij",
                     )
