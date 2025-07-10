@@ -45,9 +45,13 @@ if not HAS_OPENMP:
 
 COMPILE_MODES: Final[Dict[str, str]] = {
     "torchscript": "test.nequip.pth",
-    # commented because it is nontrivial to get CI to test this
-    # because e.g. one might have to compile PyTorch from source
-    # "aotinductor": "test.nequip.pt2",
+    **(
+        {
+            "aotinductor": "test.nequip.pt2",
+        }
+        if torch.cuda.is_available()
+        else {}
+    ),
 }
 
 
@@ -55,7 +59,7 @@ COMPILE_MODES: Final[Dict[str, str]] = {
     params=[
         ("CuPd-cubic-big.xyz", ["Cu", "Pd"], 5.0),
         ("aspirin.xyz", ["C", "H", "O"], 5.0),
-        ("aspirin.xyz", ["C", "H", "O"], 15.0),
+        ("aspirin.xyz", ["C", "H", "O"], 8.0),
         ("Cu2AgO4.xyz", ["Cu", "Ag", "O"], 5.0),
         ("Cu-cubic.xyz", ["Cu"], 5.0),
         ("Cu-cubic.xyz", ["Cu"], 15.0),
