@@ -30,25 +30,8 @@ data:
     _target_: torch.utils.data.DataLoader
     batch_size: 1
   stats_manager:
-    _target_: nequip.data.DataStatisticsManager
-    dataloader_kwargs:
-      batch_size: 5
-    metrics:
-      - field:
-          _target_: nequip.data.NumNeighbors
-        metric: 
-          _target_: nequip.data.Mean
-        name: num_neighbors_mean
-      - field:
-          _target_: nequip.data.PerAtomModifier
-          field: total_energy
-        metric:
-          _target_: nequip.data.Mean
-        name: per_atom_energy_mean
-      - field: forces
-        metric:
-          _target_: nequip.data.RootMeanSquare
-        name: forces_rms
+    _target_: nequip.data.CommonDataStatisticsManager
+    type_names: ${model_type_names}
 
 trainer:
   _target_: lightning.Trainer
