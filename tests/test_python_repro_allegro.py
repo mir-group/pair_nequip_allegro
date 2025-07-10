@@ -141,7 +141,7 @@ def test_repro(
             )
 
             # run LAMMPS
-            OMP_NUM_THREADS = 4  # just some choice
+            OMP_NUM_THREADS = 2  # just some choice
             retcode = subprocess.run(
                 " ".join(
                     # Allow user to specify prefix to set up environment before mpirun. For example,
