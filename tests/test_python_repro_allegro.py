@@ -305,18 +305,20 @@ def test_repro(
             )
             max_force_comp = np.max(np.abs(structure.get_forces()))
             force_rms = np.sqrt(np.mean(np.square(structure.get_forces())))
-            assert np.allclose(
+            np.testing.assert_allclose(
                 structure.get_forces(),
                 lammps_result.get_forces(),
                 atol=tol,
                 rtol=tol,
-            ), f"Force max abs err: {max_force_err:.8g} (atol/rtol={tol:.3g}). Max force component: {max_force_comp}, Force RMS: {force_rms}"
-            assert np.allclose(
+                err_msg=f"Force max abs err: {max_force_err:.8g} (atol/rtol={tol:.3g}). Max force component: {max_force_comp}, Force RMS: {force_rms}",
+            )
+            np.testing.assert_allclose(
                 structure.get_potential_energies(),
                 lammps_result.arrays["c_atomicenergies"].reshape(-1),
                 atol=tol,
                 rtol=tol,
-            ), f"Max atomic energy error: {np.abs(structure.get_potential_energies() - lammps_result.arrays['c_atomicenergies'].reshape(-1)).max()}"
+                err_msg=f"Max atomic energy error: {np.abs(structure.get_potential_energies() - lammps_result.arrays['c_atomicenergies'].reshape(-1)).max()}",
+            )
 
             # check system quantities
             lammps_pe = float(Path(tmpdir + "/pe.dat").read_text()) / PRECISION_CONST
@@ -324,12 +326,9 @@ def test_repro(
                 float(Path(tmpdir + "/totalatomicenergy.dat").read_text())
                 / PRECISION_CONST
             )
-            assert np.allclose(lammps_pe, lammps_totalatomicenergy)
-            assert np.allclose(
-                structure.get_potential_energy(),
-                lammps_pe,
-                atol=tol,
-                rtol=tol,
+            np.testing.assert_allclose(lammps_pe, lammps_totalatomicenergy)
+            np.testing.assert_allclose(
+                structure.get_potential_energy(), lammps_pe, atol=tol, rtol=tol
             )
             # in `metal` units, pressure/stress has units bars
             # so need to convert
@@ -353,9 +352,10 @@ def test_repro(
                 ase_stress = -structure.get_stress(voigt=False)
                 stress_err = np.max(np.abs(ase_stress - lammps_stress))
                 stol = tol * 20
-                assert np.allclose(
+                np.testing.assert_allclose(
                     ase_stress,
                     lammps_stress,
                     atol=stol,
                     rtol=stol,
-                ), f"Stress max abs err: {stress_err:.8g} (tol={stol:.3g})\nASE stress: {ase_stress.flatten().tolist()}\nLAMMPS stress: {lammps_stress.flatten().tolist()}"
+                    err_msg=f"Stress max abs err: {stress_err:.8g} (tol={stol:.3g})\nASE stress: {ase_stress.flatten().tolist()}\nLAMMPS stress: {lammps_stress.flatten().tolist()}",
+                )
