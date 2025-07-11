@@ -30,11 +30,30 @@ from conftest import (
 )
 
 
+# build valid combinations of kokkos, openmp, device
+def _build_backend_combinations():
+    combinations = []
+    devices = ["cpu"] + (["cuda"] if torch.cuda.is_available() else [])
+
+    for device in devices:
+        # base case: no kokkos, no openmp
+        combinations.append((False, False, device))
+
+        # OpenMP case
+        if HAS_OPENMP:
+            combinations.append((False, True, device))
+
+        # Kokkos case - but skip if KOKKOS_CUDA is enabled and device is CPU
+        if HAS_KOKKOS:
+            if not (HAS_KOKKOS_CUDA and device == "cpu"):
+                combinations.append((True, False, device))
+
+    return combinations
+
+
 @pytest.mark.parametrize(
-    "kokkos,openmp",
-    [(False, False)]
-    + ([(False, True)] if HAS_OPENMP else [])
-    + ([(True, False)] if HAS_KOKKOS else []),
+    "kokkos,openmp,device",
+    _build_backend_combinations(),
 )
 @pytest.mark.parametrize(
     "compile_mode",
@@ -45,27 +64,17 @@ from conftest import (
     "n_rank",
     [1, 2, 4],
 )
-@pytest.mark.parametrize(
-    "device", ["cpu"] + (["cuda"] if torch.cuda.is_available() else [])
-)
 def test_repro(
     deployed_allegro_model,
     kokkos: bool,
     openmp: bool,
+    device: str,
     compile_mode: str,
     n_rank: int,
-    device: str,
 ):
     structure: ase.Atoms
     model_tmpdir, calc, structures, config, tol = deployed_allegro_model
     model_file_path = model_tmpdir + f"/{device}_" + COMPILE_MODES[compile_mode]
-
-    # TODO: how to run CPU tests with GPU enabled Kokkos?
-    if kokkos:
-        if HAS_KOKKOS_CUDA and device == "cpu":
-            pytest.skip(
-                "Kokkos compiled with GPU-enabled backend, skipping CPU + Kokkos tests"
-            )
 
     # decide which tests to use `n_rank` > 1
     if n_rank > 1:
@@ -133,7 +142,7 @@ def test_repro(
             env["CUDA_VISIBLE_DEVICES"] = ""
 
         # save out the structure
-        for i, structure in enumerate(structures):
+        for structure in structures:
             ase.io.write(
                 tmpdir + "/structure.data",
                 structure,
