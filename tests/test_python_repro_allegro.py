@@ -78,9 +78,12 @@ def test_repro(
 
     # decide which tests to use `n_rank` > 1
     if n_rank > 1:
-        data_name = config["dataset_file_name"]
+        data_name = str(config["dataset_file_name"])
         r_max = float(config["cutoff_radius"])
-        if not (data_name in ["CuPd-cubic-big.xyz", "Cu-cubic.xyz"] and r_max < 8.0):
+        if not (
+            any(fname in data_name for fname in ["CuPd-cubic-big.xyz", "Cu-cubic.xyz"])
+            and r_max < 8.0
+        ):
             pytest.skip(
                 f"skipping `n_rank={n_rank}` Allegro test for {data_name} and `r_max={r_max}`"
             )
