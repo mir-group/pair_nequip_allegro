@@ -35,7 +35,7 @@ The given names must be consistent with the model's type names that were specifi
 ### Running with Kokkos
 To run with Kokkos (only supported for Allegro models), please see the [LAMMPS Kokkos documentation](https://docs.lammps.org/Speed_kokkos.html#running-on-gpus). Example:
 ```bash
-mpirun -np 8 lmp -sf kk -k on g 4 -pk kokkos newton on neigh full -in in.script
+mpirun -np 8 lmp -sf kk -k on g 4 -pk kokkos newton on neigh half -in in.script
 ```
 to run on 2 nodes with 4 GPUs *each*.
 
