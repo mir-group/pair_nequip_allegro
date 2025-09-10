@@ -164,9 +164,9 @@ void PairAllegroKokkos<nequip_mode>::compute(int eflag_in, int vflag_in)
 
   Kokkos::parallel_for("Allegro: Short neighlist", Kokkos::RangePolicy<DeviceType>(0,inum), KOKKOS_LAMBDA(const int ii){
       const int i = d_ilist[ii];
-      const X_FLOAT xtmp = x(i,0);
-      const X_FLOAT ytmp = x(i,1);
-      const X_FLOAT ztmp = x(i,2);
+      const KK_FLOAT xtmp = x(i,0); 
+      const KK_FLOAT ytmp = x(i,1); 
+      const KK_FLOAT ztmp = x(i,2); 
 
       const int si = d_type[i] - 1;
 
@@ -181,10 +181,10 @@ void PairAllegroKokkos<nequip_mode>::compute(int eflag_in, int vflag_in)
 
         //printf("i=%3d j=%3d ti=%d tj=%d cut=%.2f\n", i, j, d_type[i], d_type[j], ijcut);
 
-        const X_FLOAT delx = xtmp - x(j,0);
-        const X_FLOAT dely = ytmp - x(j,1);
-        const X_FLOAT delz = ztmp - x(j,2);
-        const F_FLOAT rsq = delx*delx + dely*dely + delz*delz;
+        const KK_FLOAT delx = xtmp - x(j,0); 
+        const KK_FLOAT dely = ytmp - x(j,1); 
+        const KK_FLOAT delz = ztmp - x(j,2); 
+        const KK_FLOAT rsq = delx*delx + dely*dely + delz*delz;
 
         if (rsq < ijcut*ijcut) {
           d_neighbors_short(ii,inside) = j;

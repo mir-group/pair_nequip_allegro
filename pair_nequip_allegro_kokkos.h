@@ -45,24 +45,24 @@ class PairAllegroKokkos : public PairNequIPAllegro<nequip_mode> {
   virtual void init_style();
 
   KOKKOS_INLINE_FUNCTION
-  void v_tally(E_FLOAT (&v)[6], const int &i, const int &j,
-      const F_FLOAT &fx, const F_FLOAT &fy, const F_FLOAT &fz, const F_FLOAT &delx,
-                  const F_FLOAT &dely, const F_FLOAT &delz) const;
+  void v_tally(KK_FLOAT (&v)[6], const int &i, const int &j,
+      const KK_FLOAT &fx, const KK_FLOAT &fy, const KK_FLOAT &fz, const KK_FLOAT &delx,
+                  const KK_FLOAT &dely, const KK_FLOAT &delz) const;
 
-  typename AT::t_efloat_1d d_eatom;
-  typename AT::t_virial_array d_vatom;
+  typename AT::t_kkacc_1d d_eatom;
+  typename AT::t_kkacc_1d_6 d_vatom; 
  protected:
   typedef Kokkos::DualView<int***,DeviceType> tdual_int_3d;
   typedef typename tdual_int_3d::t_dev_const_randomread t_int_3d_randomread;
   typedef typename tdual_int_3d::t_host t_host_int_3d;
 
-  typename AT::t_x_array_randomread x;
-  typename AT::t_f_array f;
+  typename AT::t_kkfloat_1d_3_lr_randomread x; 
+  typename AT::t_kkacc_1d_3 f; 
   typename AT::t_tagint_1d tag;
   typename AT::t_int_1d_randomread type;
 
-  DAT::tdual_efloat_1d k_eatom;
-  DAT::tdual_virial_array k_vatom;
+  DAT::ttransform_kkacc_1d k_eatom; 
+  DAT::ttransform_kkacc_1d_6 k_vatom;  
 
   using inputtype = typename super::inputtype;
   using outputtype = typename super::outputtype;
@@ -73,8 +73,8 @@ class PairAllegroKokkos : public PairNequIPAllegro<nequip_mode> {
   using LongView2D = Kokkos::View<long**, Kokkos::LayoutRight, DeviceType>;
   using UnmanagedFloatView1D = Kokkos::View<outputtype*, Kokkos::LayoutRight, DeviceType>;
   using UnmanagedFloatView2D = Kokkos::View<outputtype**, Kokkos::LayoutRight, DeviceType>;
-  using View1D = Kokkos::View<F_FLOAT*, Kokkos::LayoutRight, DeviceType>;
-  using View2D = Kokkos::View<F_FLOAT**, Kokkos::LayoutRight, DeviceType>;
+  using View1D = Kokkos::View<KK_ACC_FLOAT*, Kokkos::LayoutRight, DeviceType>;
+  using View2D = Kokkos::View<KK_ACC_FLOAT**, Kokkos::LayoutRight, DeviceType>;
   using InputFloatView2D = Kokkos::View<inputtype**, Kokkos::LayoutRight, DeviceType>;
 
 
