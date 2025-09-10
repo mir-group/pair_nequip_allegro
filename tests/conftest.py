@@ -195,7 +195,7 @@ def deployed_model(nequip_or_allegro, tmpdir, dtype, dataset_options):
         s.wrap()
     structures = structures[:1]
 
-    calc = NequIPCalculator._from_checkpoint_model(
+    calc = NequIPCalculator._from_saved_model(
         checkpoint_path,
         chemical_symbols=config["chemical_symbols"],
     )
