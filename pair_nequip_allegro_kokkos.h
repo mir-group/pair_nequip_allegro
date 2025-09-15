@@ -44,11 +44,6 @@ class PairAllegroKokkos : public PairNequIPAllegro<nequip_mode> {
   virtual void coeff(int, char **);
   virtual void init_style();
 
-  KOKKOS_INLINE_FUNCTION
-  void v_tally(KK_FLOAT (&v)[6], const int &i, const int &j,
-      const KK_FLOAT &fx, const KK_FLOAT &fy, const KK_FLOAT &fz, const KK_FLOAT &delx,
-                  const KK_FLOAT &dely, const KK_FLOAT &delz) const;
-
   typename AT::t_kkacc_1d d_eatom;
   typename AT::t_kkacc_1d_6 d_vatom; 
  protected:
