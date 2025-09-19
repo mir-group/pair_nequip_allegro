@@ -1,5 +1,8 @@
 # `pair_nequip` and `pair_allegro`: LAMMPS pair styles
 
+> [!IMPORTANT]
+> These pair styles are no longer compatible with LAMMPS versions older than the [10 September 2025](https://github.com/lammps/lammps/releases/tag/patch_10Sep2025) release.
+
 These pair styles allow you to use models from the [NequIP framework](https://github.com/mir-group/nequip) in LAMMPS simulations. This repository provides two pair styles: `pair_nequip` is for the NequIP message-passing GNN model, which is limited to one MPI rank; `pair_allegro` is for the strictly local Allegro model, which supports parallel execution and MPI in LAMMPS.
 
  - [Usage](#usage)
@@ -7,7 +10,6 @@ These pair styles allow you to use models from the [NequIP framework](https://gi
  - [References & citing](#references--citing)
  - [FAQ](#faq)
  - [Community, contact, questions, and contributing](#community-contact-questions-and-contributing)
-
 
 > [!IMPORTANT]
 > A [major backwards-incompatible update](./docs/guide/upgrading.md) to the `nequip` framework was released on April 23rd 2025 as version v0.7.0 including the updated pair styles here. The previous version of `pair_allegro` for use with older models can be found in this repository as version v0.6.0. The previous version of `pair_nequip` can be found in the [`pair_nequip` repository](https://github.com/mir-group/pair_nequip) as version v0.6.0.
