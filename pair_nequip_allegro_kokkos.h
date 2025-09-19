@@ -68,6 +68,8 @@ class PairAllegroKokkos : public PairNequIPAllegro<nequip_mode> {
   using LongView2D = Kokkos::View<long**, Kokkos::LayoutRight, DeviceType>;
   using UnmanagedFloatView1D = Kokkos::View<outputtype*, Kokkos::LayoutRight, DeviceType>;
   using UnmanagedFloatView2D = Kokkos::View<outputtype**, Kokkos::LayoutRight, DeviceType>;
+  using View1D = Kokkos::View<KK_ACC_FLOAT*, Kokkos::LayoutRight, DeviceType>;
+  using View2D = Kokkos::View<KK_ACC_FLOAT**, Kokkos::LayoutRight, DeviceType>;
   using InputFloatView2D = Kokkos::View<inputtype**, Kokkos::LayoutRight, DeviceType>;
 
 
