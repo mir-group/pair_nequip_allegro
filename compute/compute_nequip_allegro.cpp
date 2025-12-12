@@ -15,7 +15,7 @@
    Contributing author: Anders Johansson (Harvard)
 ------------------------------------------------------------------------- */
 
-#include "compute_allegro.h"
+#include "compute_nequip_allegro.h"
 #include "atom.h"
 #include "comm.h"
 #include "error.h"
@@ -37,7 +37,7 @@
 using namespace LAMMPS_NS;
 
 template<int peratom>
-ComputeAllegro<peratom>::ComputeAllegro(LAMMPS *lmp, int narg, char **arg) : Compute(lmp, narg, arg)
+ComputeAllegro<peratom>::ComputeNequIPAllegro(LAMMPS *lmp, int narg, char **arg) : Compute(lmp, narg, arg)
 {
 
   if constexpr (!peratom) {
@@ -74,11 +74,13 @@ ComputeAllegro<peratom>::ComputeAllegro(LAMMPS *lmp, int narg, char **arg) : Com
                      size_vector);
   }
 
-  if (force->pair == nullptr) {
-    error->all(FLERR, "no pair style; compute allegro must be defined after pair style");
+  assert_pair_compatibility();
+
+  if (allegro_pair == nullptr) {
+    error->all(FLERR, "no compatible pair style; compute allegro must be defined after pair style");
   }
 
-  ((PairNequIPAllegro<0> *) force->pair)->add_custom_output(quantity);
+  allegro_pair->add_custom_output(quantity);
 }
 
 template<int peratom>
@@ -185,6 +187,15 @@ void ComputeAllegro<peratom>::unpack_reverse_comm(int n, int *list, double *buf)
     for (int k = 0; k < nperatom; k++) {
       array_atom[j][k] += buf[m++];
     }
+  }
+}
+
+template<int peratom>
+void ComputeAllegro<peratom>::assert_pair_compatibility(){
+
+  allegro_pair = dynamic_cast<PairNequIPAllegro<false>*>(force->pair_match("allegro",1));
+  if (!allegro_pair){
+    error->all(FLERR, "Incompatible allegro pair style for compute allegro");
   }
 }
 
