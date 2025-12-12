@@ -54,7 +54,7 @@ class ComputeNequIPAllegro : public Compute {
   int nperatom;
   int nmax;
   LAMMPS_NS::PairNequIPAllegro<nequip_mode> *nequip_allegro_pair;
-
+  std::string compute_name;
 };
 
 }
