@@ -36,20 +36,25 @@
 
 using namespace LAMMPS_NS;
 
-template<int peratom>
-ComputeAllegro<peratom>::ComputeNequIPAllegro(LAMMPS *lmp, int narg, char **arg) : Compute(lmp, narg, arg)
+template<int nequip_mode,int peratom>
+ComputeNequIPAllegro<nequip_mode,peratom>::ComputeNequIPAllegro(LAMMPS *lmp, int narg, char **arg) : Compute(lmp, narg, arg)
 {
+  if (nequip_mode){
+    compute_name = "nequip"
+  } else{
+    compute_name = "allegro"
+  }
 
   if constexpr (!peratom) {
     // compute 1 all allegro quantity length
-    if (narg != 5) error->all(FLERR, "Incorrect args for compute allegro");
+    if (narg != 5) error->all(FLERR, "Incorrect args for compute {}",compute_name);
   } else {
     // compute 1 all allegro/atom quantity length newton(1/0)
-    if (narg != 6) error->all(FLERR, "Incorrect args for compute allegro/atom");
+    if (narg != 6) error->all(FLERR, "Incorrect args for compute {}/atom",compute_name);
   }
 
   if (strcmp(arg[1], "all") != 0)
-    error->all(FLERR, "compute allegro can only operate on group 'all'");
+    error->all(FLERR, "compute {} can only operate on group 'all'",compute_name);
 
   quantity = arg[3];
   if constexpr (peratom) {
@@ -60,37 +65,37 @@ ComputeAllegro<peratom>::ComputeNequIPAllegro(LAMMPS *lmp, int narg, char **arg)
     size_peratom_cols = nperatom==1 ? 0 : nperatom;
     nmax = -12;
     if (comm->me == 0)
-      utils::logmesg(lmp, "compute allegro/atom will evaluate the quantity {} of length {} with newton {}", quantity,
-                     size_peratom_cols, newton);
+      utils::logmesg(lmp, "compute {}/atom will evaluate the quantity {} of length {} with newton {}", compute_name, 
+        quantity, size_peratom_cols, newton);
   } else {
     vector_flag = 1;
     //As stated in the README, we assume vector properties are extensive
     extvector = 1;
     size_vector = std::atoi(arg[4]);
     if (size_vector <= 0) error->all(FLERR, "Incorrect vector length!");
-    memory->create(vector, size_vector, "ComputeAllegro:vector");
+    memory->create(vector, size_vector, "ComputeNequIPAllegro:vector");
     if (comm->me == 0)
-      utils::logmesg(lmp, "compute allegro will evaluate the quantity {} of length {}", quantity,
-                     size_vector);
+      utils::logmesg(lmp, "compute {} will evaluate the quantity {} of length {}", compute_name, 
+        quantity, size_vector);
   }
 
   assert_pair_compatibility();
 
-  if (allegro_pair == nullptr) {
-    error->all(FLERR, "no compatible pair style; compute allegro must be defined after pair style");
+  if (nequip_allegro_pair == nullptr) {
+    error->all(FLERR, "no compatible pair style; compute {} must be defined after pair style",compute_name);
   }
 
-  allegro_pair->add_custom_output(quantity);
+  nequip_allegro_pair->add_custom_output(quantity);
 }
 
-template<int peratom>
-void ComputeAllegro<peratom>::init()
+template<int nequip_mode,int peratom>
+ComputeNequIPAllegro<nequip_mode,peratom>::init()
 {
   ;
 }
 
-template<int peratom>
-ComputeAllegro<peratom>::~ComputeAllegro()
+template<int nequip_mode,int peratom>
+ComputeNequIPAllegro<nequip_mode,peratom>::~ComputeAllegro()
 {
   if (copymode) return;
   if constexpr (peratom) {
@@ -100,8 +105,8 @@ ComputeAllegro<peratom>::~ComputeAllegro()
   }
 }
 
-template<int peratom>
-void ComputeAllegro<peratom>::compute_vector()
+template<int nequip_mode,int peratom>
+ComputeNequIPAllegro<nequip_mode,peratom>::compute_vector()
 {
   invoked_vector = update->ntimestep;
 
@@ -129,15 +134,15 @@ void ComputeAllegro<peratom>::compute_vector()
   MPI_Allreduce(MPI_IN_PLACE, vector, size_vector, MPI_DOUBLE, MPI_SUM, world);
 }
 
-template<int peratom>
-void ComputeAllegro<peratom>::compute_peratom()
+template<int nequip_mode,int peratom>
+ComputeNequIPAllegro<nequip_mode,peratom>::compute_peratom()
 {
   invoked_peratom = update->ntimestep;
 
   if (atom->nmax > nmax) {
     nmax = atom->nmax;
     memory->destroy(array_atom);
-    memory->create(array_atom, nmax, nperatom, "allegro/atom:array");
+    memory->create(array_atom, nmax, nperatom, "ComputeNequIPAllegroPerAtom:array");
     if (nperatom==1) vector_atom = &array_atom[0][0];
   }
 
@@ -161,8 +166,8 @@ void ComputeAllegro<peratom>::compute_peratom()
   if (newton) comm->reverse_comm(this);
 }
 
-template<int peratom>
-int ComputeAllegro<peratom>::pack_reverse_comm(int n, int first, double *buf)
+template<int nequip_mode,int peratom>
+ComputeNequIPAllegro<nequip_mode,peratom>::pack_reverse_comm(int n, int first, double *buf)
 {
   int i, m, last;
 
@@ -176,8 +181,8 @@ int ComputeAllegro<peratom>::pack_reverse_comm(int n, int first, double *buf)
   return m;
 }
 
-template<int peratom>
-void ComputeAllegro<peratom>::unpack_reverse_comm(int n, int *list, double *buf)
+template<int nequip_mode,int peratom>
+ComputeNequIPAllegro<nequip_mode,peratom>::unpack_reverse_comm(int n, int *list, double *buf)
 {
   int i, j, m;
 
@@ -190,17 +195,24 @@ void ComputeAllegro<peratom>::unpack_reverse_comm(int n, int *list, double *buf)
   }
 }
 
-template<int peratom>
-void ComputeAllegro<peratom>::assert_pair_compatibility(){
+template<int nequip_mode,int peratom>
+ComputeNequIPAllegro<nequip_mode,peratom>::assert_pair_compatibility(){
 
-  allegro_pair = dynamic_cast<PairNequIPAllegro<false>*>(force->pair_match("allegro",1));
-  if (!allegro_pair){
-    error->all(FLERR, "Incompatible allegro pair style for compute allegro");
+  if (nequip_mode){
+    nequip_allegro_pair = dynamic_cast<PairNequIPAllegro<nequip_mode>*>(force->pair_match("nequip",1));
+  }else{
+    nequip_allegro_pair = dynamic_cast<PairNequIPAllegro<nequip_mode>*>(force->pair_match("allegro",1));
+  }
+  
+  if (!nequip_allegro_pair){
+    error->all(FLERR, "Incompatible {} pair style for compute {}",compute_name);
   }
 }
 
 
 namespace LAMMPS_NS {
-  template class ComputeAllegro<0>;
-  template class ComputeAllegro<1>;
+  template class ComputeNequIPAllegro<0,0>;
+  template class ComputeNequIPAllegro<0,1>;
+  template class ComputeNequIPAllegro<1,0>;
+  template class ComputeNequIPAllegro<1,1>;
 }
