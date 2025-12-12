@@ -60,7 +60,7 @@ ComputeAllegro<peratom>::ComputeNequIPAllegro(LAMMPS *lmp, int narg, char **arg)
     size_peratom_cols = nperatom==1 ? 0 : nperatom;
     nmax = -12;
     if (comm->me == 0)
-      error->message(FLERR, "compute allegro/atom will evaluate the quantity {} of length {} with newton {}", quantity,
+      utils::logmesg(lmp, "compute allegro/atom will evaluate the quantity {} of length {} with newton {}", quantity,
                      size_peratom_cols, newton);
   } else {
     vector_flag = 1;
@@ -70,7 +70,7 @@ ComputeAllegro<peratom>::ComputeNequIPAllegro(LAMMPS *lmp, int narg, char **arg)
     if (size_vector <= 0) error->all(FLERR, "Incorrect vector length!");
     memory->create(vector, size_vector, "ComputeAllegro:vector");
     if (comm->me == 0)
-      error->message(FLERR, "compute allegro will evaluate the quantity {} of length {}", quantity,
+      utils::logmesg(lmp, "compute allegro will evaluate the quantity {} of length {}", quantity,
                      size_vector);
   }
 
