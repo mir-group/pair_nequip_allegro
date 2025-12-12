@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ github.event.repository.private == true && 'self-hosted' || 'ubuntu-latest' }}
     strategy:
       matrix:
-        torch-version: ["2.7.1"]
+        torch-version: ["2.9.0"]
     container:
       image: nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04
       options: ${{ github.event.repository.private && '--gpus all' || ' ' }}
