@@ -61,7 +61,12 @@ ComputeNequIPAllegro<nequip_mode,peratom>::ComputeNequIPAllegro(LAMMPS *lmp, int
     peratom_flag = 1;
     nperatom = std::atoi(arg[4]);
     newton = std::atoi(arg[5]);
-    if (newton) comm_reverse = nperatom;
+    if (newton) {
+      comm_reverse = nperatom;
+      if (nequip_mode) {
+        error->all(FLERR, "compute {} cannot use newton reverse communication, please set to 0",compute_name);
+      }
+    }
     size_peratom_cols = nperatom==1 ? 0 : nperatom;
     nmax = -12;
     if (comm->me == 0)
