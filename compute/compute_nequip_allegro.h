@@ -34,7 +34,11 @@ ComputeStyle(nequip/atom,ComputeNequIPPerAtom)
 
 namespace LAMMPS_NS {
 
-template<int nequip_mode,int peratom>
+//Forward declaration for the pair pointer
+template<bool nequip_mode>
+class PairNequIPAllegro;
+
+template<bool nequip_mode,int peratom>
 class ComputeNequIPAllegro : public Compute {
  public:
   ComputeNequIPAllegro(class LAMMPS *, int, char**);
@@ -49,7 +53,6 @@ class ComputeNequIPAllegro : public Compute {
  protected:
   void assert_pair_compatibility();
   std::string quantity;
-  double *quantityptr;
   int newton;
   int nperatom;
   int nmax;
@@ -61,4 +64,3 @@ class ComputeNequIPAllegro : public Compute {
 
 #endif
 #endif
-
