@@ -19,7 +19,8 @@ data:
     - _target_: nequip.data.transforms.NeighborListTransform
       r_max: ${cutoff_radius}
     - _target_: nequip.data.transforms.ChemicalSpeciesToAtomTypeMapper
-      chemical_symbols: ${chemical_symbols}
+      model_type_names: ${model_type_names}
+      chemical_species_to_atom_type_map: ${list_to_identity_dict:${model_type_names}}
   train_dataloader:
     _target_: torch.utils.data.DataLoader
     batch_size: 1
