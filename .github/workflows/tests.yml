@@ -37,9 +37,10 @@ jobs:
       - name: Install system dependencies
         run: |
           apt update
-          apt install -y cmake libopenmpi-dev git --fix-missing
+          apt install -y libopenmpi-dev git --fix-missing
           python3 -m pip install --upgrade pip
           pip install pytest
+          pip install cmake>=3.25
       - name: Install PyTorch
         env:
           TORCH: "${{ matrix.torch-version }}"
