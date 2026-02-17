@@ -62,6 +62,7 @@ jobs:
         run: |
           pip install setuptools wheel pytest pytest-xdist[psutil]
           # install nequip and allegro
+          pip install "lightning<2.6.0"
           pip install --upgrade-strategy only-if-needed ./nequip
           pip install --upgrade-strategy only-if-needed ./allegro
       - name: Fetch and build LAMMPS
