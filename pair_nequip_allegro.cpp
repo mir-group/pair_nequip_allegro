@@ -241,8 +241,15 @@ template <bool nequip_mode> void PairNequIPAllegro<nequip_mode>::coeff(int narg,
     // set up input and output order
     // Check if the model specifies its own input/output order
     if (metadata.find("nequip_aoti_inputs") != metadata.end()){ //After moving to C++20, this can use a .contains("nequip_aoti_inputs") instead.
-      model_input_order = metadata["nequip_aoti_inputs"];
-      model_output_order = metadata["nequip_aoti_outputs"];
+      auto split_metadata_string = [](const std::string &metadata_string) {
+          std::istringstream iss(metadata_string);
+          std::vector<std::string> out;
+          for (std::string tok; iss >> tok; ) out.push_back(tok);
+          return out;
+        };
+      
+      model_input_order = split_metadata_string(metadata["nequip_aoti_inputs"]);
+      model_output_order = split_metadata_string(metadata["nequip_aoti_outputs"]);
     } else { //Default input fields
       model_input_order = {"pos", "edge_index", "atom_types"};
       if (nequip_mode) {
