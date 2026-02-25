@@ -25,7 +25,7 @@
 #include "region.h"
 #include "update.h"
 #include "variable.h"
-#include "pair_allegro.h"
+#include "pair_nequip_allegro.h"
 #include <torch/torch.h>
 #include <iostream>
 
@@ -104,9 +104,10 @@ FixAddBornForce::FixAddBornForce(LAMMPS *lmp, int narg, char **arg)
   datamask_read = X_MASK | F_MASK | MASK_MASK | IMAGE_MASK;
   datamask_modify = F_MASK;
 
-  ((PairAllegro<lowhigh> *)force->pair)->add_custom_output("born_charge");
-  ((PairAllegro<lowhigh> *)force->pair)->add_custom_output("polarization");
-  ((PairAllegro<lowhigh> *)force->pair)->add_custom_output("polarizability");
+  //TODO Here and in compute: does it matter that this is specifying <nequip_mode=0>?
+  ((PairNequIPAllegro<0> *) force->pair)->add_custom_output("born_charge");
+  ((PairNequIPAllegro<0> *) force->pair)->add_custom_output("polarization");
+  ((PairNequIPAllegro<0> *) force->pair)->add_custom_output("polarizability");
 }
 
 /* ---------------------------------------------------------------------- */
@@ -241,7 +242,7 @@ void FixAddBornForce::post_force(int vflag) {
   extraenergy = extrapolarization[0] = extrapolarization[1] = extrapolarization[2] = 0.0;
 
   torch::Tensor born_tensor =
-    ((PairAllegro<lowhigh> *) force->pair)->custom_output.at("born_charge").cpu();
+    ((PairNequIPAllegro<0> *) force->pair)->custom_output.at("born_charge").cpu();
   this->born_tensor = born_tensor;
 
   auto born = born_tensor.accessor<double,3>();
@@ -314,9 +315,9 @@ void FixAddBornForce::post_force(int vflag) {
 
 
   torch::Tensor polarization_tensor =
-    ((PairAllegro<lowhigh> *) force->pair)->custom_output.at("polarization").cpu();
+    ((PairNequIPAllegro<0> *) force->pair)->custom_output.at("polarization").cpu();
   torch::Tensor polarizability_tensor =
-    ((PairAllegro<lowhigh> *) force->pair)->custom_output.at("polarizability").cpu();
+    ((PairNequIPAllegro<0> *) force->pair)->custom_output.at("polarizability").cpu();
 
   // std::cout << "polarization: " << polarization_tensor << std::endl;
   // std::cout << "polarizability: " << polarizability_tensor << std::endl;
