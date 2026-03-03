@@ -388,7 +388,7 @@ double FixAddBornForce::compute_vector(int n) {
   // only sum across procs one time
 
   if (reduced_flag == 0) {
-    MPI_Allreduce(MPI_IN_PLACE, extrapolarization, 4, MPI_DOUBLE, MPI_SUM, world);
+    MPI_Allreduce(MPI_IN_PLACE, extrapolarization, 3, MPI_DOUBLE, MPI_SUM, world);
     reduced_flag = 1;
   }
   return extrapolarization[n];
