@@ -119,6 +119,8 @@ def test_repro(
         timestep	0.001
 
         compute atomicenergies all pe/atom
+        compute allegroatomicenergies all allegro/atom atomic_energy 1 0
+        compute allegroforces all allegro/atom forces 3 1
         compute totalatomicenergy all reduce sum c_atomicenergies
         compute stress all pressure NULL virial  # NULL means without temperature contribution
 
@@ -127,7 +129,7 @@ def test_repro(
         print "$({PRECISION_CONST} * c_stress[1]) $({PRECISION_CONST} * c_stress[2]) $({PRECISION_CONST} * c_stress[3]) $({PRECISION_CONST} * c_stress[4]) $({PRECISION_CONST} * c_stress[5]) $({PRECISION_CONST} * c_stress[6])" file stress.dat
         print $({PRECISION_CONST} * pe) file pe.dat
         print $({PRECISION_CONST} * c_totalatomicenergy) file totalatomicenergy.dat
-        write_dump all custom output.dump id type x y z fx fy fz c_atomicenergies modify format float %20.15g
+        write_dump all custom output.dump id type x y z fx fy fz c_atomicenergies c_allegroatomicenergies c_allegroforces[1] c_allegroforces[2] c_allegroforces[3] modify format float %20.15g
         """
     )
 
@@ -330,6 +332,42 @@ def test_repro(
                 atol=tol,
                 rtol=tol,
                 err_msg=f"Max atomic energy error: {np.abs(structure.get_potential_energies() - lammps_result.arrays['c_atomicenergies'].reshape(-1)).max()}",
+            )
+            np.testing.assert_allclose(
+                structure.get_potential_energies(),
+                lammps_result.arrays["c_allegroatomicenergies"].reshape(-1),
+                atol=tol,
+                rtol=tol,
+                err_msg=f"Max compute atomic energy error: {np.abs(structure.get_potential_energies() - lammps_result.arrays['c_allegroatomicenergies'].reshape(-1)).max()}",
+            )
+
+            
+            ase_forces = structure.get_forces()
+            lammps_allegroforces = np.zeros_like(ase_forces)
+            lammps_allegroforces[:,0] = lammps_result.arrays["c_allegroforces[1]"].reshape(-1)
+            lammps_allegroforces[:,1] = lammps_result.arrays["c_allegroforces[2]"].reshape(-1)
+            lammps_allegroforces[:,2] = lammps_result.arrays["c_allegroforces[3]"].reshape(-1)
+            max_force_err = np.max(
+                np.abs(structure.get_forces() - lammps_allegroforces)
+            )
+            min_force_err = np.min(
+                np.abs(structure.get_forces() - lammps_allegroforces)
+            )
+            max_force_comp = np.max(np.abs(structure.get_forces()))
+            force_rms = np.sqrt(np.mean(np.square(structure.get_forces())))
+            np.testing.assert_allclose(
+                lammps_result.get_forces(),
+                lammps_allegroforces,
+                atol=tol,
+                rtol=tol,
+                err_msg=f"Max compute forces abs err: {max_force_err:.8g} (atol/rtol={tol:.3g}). Min abs err: {min_force_err:.8g}. Max force component: {max_force_comp}, Force RMS: {force_rms}",
+            )
+            np.testing.assert_allclose(
+                ase_forces,
+                lammps_allegroforces,
+                atol=tol,
+                rtol=tol,
+                err_msg=f"Max compute forces abs err: {max_force_err:.8g} (atol/rtol={tol:.3g}). Max force component: {max_force_comp}, Force RMS: {force_rms}",
             )
 
             # check system quantities

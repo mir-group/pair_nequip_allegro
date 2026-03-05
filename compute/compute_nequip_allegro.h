@@ -13,8 +13,15 @@
 
 #ifdef COMPUTE_CLASS
 
-ComputeStyle(allegro,ComputeAllegro<0>)
-ComputeStyle(allegro/atom,ComputeAllegro<1>)
+typedef ComputeNequIPAllegro<0,0> ComputeAllegro;
+typedef ComputeNequIPAllegro<0,1> ComputeAllegroPerAtom;
+typedef ComputeNequIPAllegro<1,0> ComputeNequIP;
+typedef ComputeNequIPAllegro<1,1> ComputeNequIPPerAtom;
+
+ComputeStyle(allegro,ComputeAllegro)
+ComputeStyle(allegro/atom,ComputeAllegroPerAtom)
+ComputeStyle(nequip,ComputeNequIP)
+ComputeStyle(nequip/atom,ComputeNequIPPerAtom)
 
 #else
 
@@ -27,11 +34,15 @@ ComputeStyle(allegro/atom,ComputeAllegro<1>)
 
 namespace LAMMPS_NS {
 
-template<int peratom>
-class ComputeAllegro : public Compute {
+//Forward declaration for the pair pointer
+template<bool nequip_mode>
+class PairNequIPAllegro;
+
+template<bool nequip_mode,int peratom>
+class ComputeNequIPAllegro : public Compute {
  public:
-  ComputeAllegro(class LAMMPS *, int, char**);
-  ~ComputeAllegro();
+  ComputeNequIPAllegro(class LAMMPS *, int, char**);
+  ~ComputeNequIPAllegro();
   void compute_vector() override;
   void compute_peratom() override;
   void init() override;
@@ -40,16 +51,16 @@ class ComputeAllegro : public Compute {
   void unpack_reverse_comm(int, int *, double *) override;
 
  protected:
+  void assert_pair_compatibility();
   std::string quantity;
-  double *quantityptr;
   int newton;
   int nperatom;
   int nmax;
-
+  LAMMPS_NS::PairNequIPAllegro<nequip_mode> *nequip_allegro_pair;
+  std::string compute_name;
 };
 
 }
 
 #endif
 #endif
-

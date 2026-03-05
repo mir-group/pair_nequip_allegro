@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ github.event.repository.private == true && 'self-hosted' || 'ubuntu-latest' }}
     strategy:
       matrix:
-        torch-version: ["2.7.1"]
+        torch-version: ["2.9.0"]
     container:
       image: nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04
       options: ${{ github.event.repository.private && '--gpus all' || ' ' }}
@@ -71,6 +71,7 @@ jobs:
           cd lammps_dir/
           git clone --branch release --depth 1 "https://github.com/lammps/lammps"
           cd ..
+          cp ./compute/* .
           ./patch_lammps.sh lammps_dir/lammps/
           cd lammps_dir/lammps/
           mkdir build/

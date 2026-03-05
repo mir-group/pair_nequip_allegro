@@ -91,3 +91,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.vscode/settings.json
+
+.DS_store
+lammps/

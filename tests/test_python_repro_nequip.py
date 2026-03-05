@@ -67,6 +67,8 @@ def test_repro(deployed_nequip_model, compile_mode: str, device: str):
         timestep	0.001
 
         compute atomicenergies all pe/atom
+        compute nequipatomicenergies all nequip/atom atomic_energy 1 0
+        compute nequipforces all nequip/atom forces 3 0
         compute totalatomicenergy all reduce sum c_atomicenergies
         compute stress all pressure NULL virial  # NULL means without temperature contribution
 
@@ -75,7 +77,7 @@ def test_repro(deployed_nequip_model, compile_mode: str, device: str):
         print "$({PRECISION_CONST} * c_stress[1]) $({PRECISION_CONST} * c_stress[2]) $({PRECISION_CONST} * c_stress[3]) $({PRECISION_CONST} * c_stress[4]) $({PRECISION_CONST} * c_stress[5]) $({PRECISION_CONST} * c_stress[6])" file stress.dat
         print $({PRECISION_CONST} * pe) file pe.dat
         print $({PRECISION_CONST} * c_totalatomicenergy) file totalatomicenergy.dat
-        write_dump all custom output.dump id type x y z fx fy fz c_atomicenergies modify format float %20.15g
+        write_dump all custom output.dump id type x y z fx fy fz c_atomicenergies c_nequipatomicenergies c_nequipforces[1] c_nequipforces[2] c_nequipforces[3] modify format float %20.15g
         """
     )
 
@@ -226,17 +228,37 @@ def test_repro(deployed_nequip_model, compile_mode: str, device: str):
             )
             max_force_comp = np.max(np.abs(structure.get_forces()))
             force_rms = np.sqrt(np.mean(np.square(structure.get_forces())))
-            assert np.allclose(
+            np.testing.assert_allclose(
                 structure.get_forces(),
                 lammps_result.get_forces(),
                 atol=tol,
                 rtol=tol,
-            ), f"Max force error: {max_force_err}, Max force component: {max_force_comp}, Force RMS: {force_rms}"
-            assert np.allclose(
+                err_msg=f"Force max abs err: {max_force_err:.8g} (atol/rtol={tol:.3g}). Max force component: {max_force_comp}, Force RMS: {force_rms}",
+            )
+            np.testing.assert_allclose(
                 structure.get_potential_energies(),
                 lammps_result.arrays["c_atomicenergies"].reshape(-1),
                 atol=tol,
                 rtol=tol,
+                err_msg=f"Max atomic energy error: {np.abs(structure.get_potential_energies() - lammps_result.arrays['c_atomicenergies'].reshape(-1)).max()}",
+            )
+            np.testing.assert_allclose(
+                structure.get_potential_energies(),
+                lammps_result.arrays["c_nequipatomicenergies"].reshape(-1),
+                atol=tol,
+                rtol=tol,
+                err_msg=f"Max compute atomic energy error: {np.abs(structure.get_potential_energies() - lammps_result.arrays['c_nequipatomicenergies'].reshape(-1)).max()}",
+            )
+            lammps_nequipforces = np.zeros_like(structure.get_forces())
+            lammps_nequipforces[:, 0] = lammps_result.arrays["c_nequipforces[1]"].reshape(-1)
+            lammps_nequipforces[:, 1] = lammps_result.arrays["c_nequipforces[2]"].reshape(-1)
+            lammps_nequipforces[:, 2] = lammps_result.arrays["c_nequipforces[3]"].reshape(-1)
+            np.testing.assert_allclose(
+                lammps_result.get_forces(),
+                lammps_nequipforces,
+                atol=tol,
+                rtol=tol,
+                err_msg=f"Max compute forces error: {np.abs(lammps_result.get_forces() - lammps_nequipforces).max()}",
             )
 
             # check system quantities
