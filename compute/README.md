@@ -9,6 +9,8 @@ compute borncharges all allegro/atom born_charge 9 1
 
 compute atomicenergy all nequip/atom atomic_energy 1 0
 compute atomicenergy all allegro/atom atomic_energy 1 0
+compute forces all nequip/atom forces 3 0
+compute forces all allegro/atom forces 3 1
 ```
 
 In the LAMMPS input file, the compute must be specified after defining the pair style, which must include either the `nequip` or `allegro` pair styles.
