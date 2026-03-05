@@ -107,7 +107,7 @@ def deployed_nequip_model(model_dtype, dataset_options):
         yield deployed_model("nequip", tmpdir, model_dtype, dataset_options)
 
 
-def deployed_model(nequip_or_allegro, tmpdir, dtype, dataset_options):
+def deployed_model(nequip_or_allegro_or_allegro_pol, tmpdir, dtype, dataset_options):
 
     devices = ["cpu"]
     if torch.cuda.is_available():
@@ -121,7 +121,7 @@ def deployed_model(nequip_or_allegro, tmpdir, dtype, dataset_options):
 
     # === setup config from template ===
     config = OmegaConf.load(
-        str(TESTS_DIR / f"test_data/test_repro_{nequip_or_allegro}.yaml")
+        str(TESTS_DIR / f"test_data/test_repro_{nequip_or_allegro_or_allegro_pol}.yaml")
     )
     with open_dict(config):
         # the checkpoint file `last.ckpt` will be located in the hydra runtime directory
@@ -142,6 +142,8 @@ def deployed_model(nequip_or_allegro, tmpdir, dtype, dataset_options):
     _check_and_print(retcode)
     checkpoint_path = tmpdir + "/last.ckpt"
 
+    # No pair_allegro_pol needed.
+    nequip_or_allegro = nequip_or_allegro_or_allegro_pol.split("_")[0]
     # === run `nequip-compile` for both `.pth` and `.pt2` ===
     # one training run for both torchscript and aotinductor tests
     for mode, filename in COMPILE_MODES.items():
