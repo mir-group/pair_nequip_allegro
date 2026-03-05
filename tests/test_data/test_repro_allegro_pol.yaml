@@ -1,0 +1,107 @@
+run: [train]
+
+dataset_file_name: BaTiO3.xyz
+cutoff_radius: 5.0
+chemical_symbols: [Ba,Ti,O]
+model_type_names: ${chemical_symbols}
+seed: 1
+model_dtype: float32
+
+data:
+  _target_: nequip.data.datamodule.ASEDataModule
+  seed: ${seed}
+  split_dataset:
+    file_path: ${dataset_file_name}
+    train: 2
+    val: 2
+    test: 2
+  include_keys:
+    - polarization
+    - polarizability
+  key_mapping:
+    total_energy: total_energy
+    born_charge: born_effective_charges
+  transforms:
+    - _target_: nequip.data.transforms.NeighborListTransform
+      r_max: ${cutoff_radius}
+    - _target_: nequip.data.transforms.ChemicalSpeciesToAtomTypeMapper
+      model_type_names: ${model_type_names}
+      chemical_species_to_atom_type_map: ${list_to_identity_dict:${model_type_names}}
+  train_dataloader:
+    _target_: torch.utils.data.DataLoader
+    batch_size: 1
+  val_dataloader:
+    _target_: torch.utils.data.DataLoader
+    batch_size: 1
+  test_dataloader:
+    _target_: torch.utils.data.DataLoader
+    batch_size: 1
+  stats_manager:
+    _target_: nequip.data.CommonDataStatisticsManager
+    type_names: ${model_type_names}
+
+trainer:
+  _target_: lightning.Trainer
+  max_epochs: 20
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 1
+  callbacks:
+    - _target_: lightning.pytorch.callbacks.ModelCheckpoint
+      dirpath: ${hydra:runtime.output_dir}
+      save_last: true
+
+training_module:
+  _target_: nequip.train.EMALightningModule
+  loss:
+    _target_: allegro_pol.train.EnergyForcePolarizationLoss
+    coeffs:
+      total_energy: 1.0
+      forces: 1.0
+      polarization: 1.0
+      stress: 1.0
+      born_effective_charges: 1.0
+      polarizability: 1.0
+    per_atom_energy: true
+    do_stress: true
+    do_born_charge: true
+    do_polarizability: true
+  val_metrics:
+    _target_: allegro_pol.train.EnergyForcePolarizationMetrics
+    coeffs:
+      per_atom_energy_mae: 1.0
+      forces_mae: 1.0
+      per_atom_polarization_mae: 1.0
+      stress_mae: 1.0
+      born_charge_mae: 1.0
+      polarizability_mae: 1.0
+    do_stress: true
+    do_born_charge: true
+    do_polarizability: true
+  optimizer:
+    _target_: torch.optim.Adam
+    lr: 4e-3
+  model:
+    _target_: allegro_pol.model.AllegroPolarizationModel
+    # basic model params
+    seed: ${seed}
+    model_dtype: ${model_dtype}
+    type_names: ${model_type_names}
+    r_max: ${cutoff_radius}
+    # general model params
+    radial_chemical_embed:
+      _target_: allegro.nn.TwoBodyBesselScalarEmbed
+      num_bessels: 8
+      bessel_trainable: false
+      polynomial_cutoff_p: 6
+    l_max: 2
+    num_layers: 3
+    num_scalar_features: 64
+    num_tensor_features: 32
+    allegro_mlp_hidden_layers_depth: 2
+    allegro_mlp_hidden_layers_width: 64
+    readout_mlp_hidden_layers_depth: 1
+    readout_mlp_hidden_layers_width: 32
+    # data-dependent model params
+    avg_num_neighbors: ${training_data_stats:num_neighbors_mean}
+    per_type_energy_shifts: ${training_data_stats:per_atom_energy_mean}
+    per_type_energy_scales: ${training_data_stats:forces_rms}
