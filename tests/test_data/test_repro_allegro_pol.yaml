@@ -97,6 +97,7 @@ training_module:
     num_layers: 2
     num_scalar_features: 16
     num_tensor_features: 2
+    tp_path_channel_coupling: false
     allegro_mlp_hidden_layers_depth: 2
     allegro_mlp_hidden_layers_width: 64
     readout_mlp_hidden_layers_depth: 1
