@@ -93,10 +93,10 @@ training_module:
       num_bessels: 8
       bessel_trainable: false
       polynomial_cutoff_p: 6
-    l_max: 2
-    num_layers: 3
-    num_scalar_features: 64
-    num_tensor_features: 32
+    l_max: 1
+    num_layers: 2
+    num_scalar_features: 16
+    num_tensor_features: 2
     allegro_mlp_hidden_layers_depth: 2
     allegro_mlp_hidden_layers_width: 64
     readout_mlp_hidden_layers_depth: 1
