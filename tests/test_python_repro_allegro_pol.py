@@ -376,8 +376,8 @@ def test_repro(
             )
 
             # Polarization model outputs
-
-            ase_polarization = structure.calc.results["polarization"]
+            print("ASE Testing", structure.calc.results.keys(),structure.info.keys())
+            ase_polarization = structure.info["polarization"]
             ase_polarization = np.array(ase_polarization, dtype=np.float64).reshape(-1)
             lammps_polarization = (
                 np.fromstring(
