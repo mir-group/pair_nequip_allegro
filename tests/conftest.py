@@ -124,9 +124,17 @@ def deployed_model(nequip_or_allegro_or_allegro_pol, tmpdir, dtype, dataset_opti
     if dataset_options["dataset_file_name"] == "aspirin.xyz":
         tol *= 23
 
+    model_name = nequip_or_allegro_or_allegro_pol
+    if model_name.startswith("allegro_pol"):
+        config_name = "allegro_pol"
+        compile_target = model_name
+    else:
+        config_name = model_name
+        compile_target = model_name
+
     # === setup config from template ===
     config = OmegaConf.load(
-        str(TESTS_DIR / f"test_data/test_repro_{nequip_or_allegro_or_allegro_pol}.yaml")
+        str(TESTS_DIR / f"test_data/test_repro_{config_name}.yaml")
     )
     with open_dict(config):
         # the checkpoint file `last.ckpt` will be located in the hydra runtime directory
@@ -161,7 +169,7 @@ def deployed_model(nequip_or_allegro_or_allegro_pol, tmpdir, dtype, dataset_opti
                 device,
                 # target accepted as argument for both modes, but unused for torchscript mode
                 "--target",
-                f"pair_{nequip_or_allegro_or_allegro_pol}",
+                f"pair_{compile_target}",
             ]
             print(command)
             retcode = subprocess.run(
