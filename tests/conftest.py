@@ -13,6 +13,7 @@ import torch
 from nequip.data import to_ase
 from nequip.utils.global_dtype import _GLOBAL_DTYPE
 from nequip.ase import NequIPCalculator
+from allegro_pol.integrations.ase import NequIPPolCalculator
 from omegaconf import OmegaConf, open_dict
 from hydra.utils import instantiate
 
@@ -229,8 +230,14 @@ def deployed_model(nequip_or_allegro_or_allegro_pol, tmpdir, dtype, dataset_opti
         s.wrap()
     structures = structures[:1]
 
-    calc = NequIPCalculator._from_saved_model(
-        checkpoint_path,
-        chemical_symbols=config["chemical_symbols"],
-    )
+    if config_name == "allegro_pol":
+        calc = NequIPPolCalculator._from_saved_model(
+            checkpoint_path,
+            chemical_symbols=config["chemical_symbols"],
+        )
+    else:
+        calc = NequIPCalculator._from_saved_model(
+            checkpoint_path,
+            chemical_symbols=config["chemical_symbols"],
+        )
     return tmpdir, calc, structures, config, tol
