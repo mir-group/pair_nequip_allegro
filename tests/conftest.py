@@ -100,6 +100,11 @@ def deployed_allegro_model(model_dtype, dataset_options):
     with tempfile.TemporaryDirectory() as tmpdir:
         yield deployed_model("allegro", tmpdir, model_dtype, dataset_options)
 
+@pytest.fixture(scope="session")
+def deployed_allegro_pol_model(model_dtype, dataset_options):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield deployed_model("allegro_pol_bc", tmpdir, model_dtype, dataset_options)
+
 
 @pytest.fixture(scope="session")
 def deployed_nequip_model(model_dtype, dataset_options):
@@ -142,8 +147,6 @@ def deployed_model(nequip_or_allegro_or_allegro_pol, tmpdir, dtype, dataset_opti
     _check_and_print(retcode)
     checkpoint_path = tmpdir + "/last.ckpt"
 
-    # No pair_allegro_pol needed.
-    nequip_or_allegro = nequip_or_allegro_or_allegro_pol.split("_")[0]
     # === run `nequip-compile` for both `.pth` and `.pt2` ===
     # one training run for both torchscript and aotinductor tests
     for mode, filename in COMPILE_MODES.items():
@@ -158,7 +161,7 @@ def deployed_model(nequip_or_allegro_or_allegro_pol, tmpdir, dtype, dataset_opti
                 device,
                 # target accepted as argument for both modes, but unused for torchscript mode
                 "--target",
-                f"pair_{nequip_or_allegro}",
+                f"pair_{nequip_or_allegro_or_allegro_pol}",
             ]
             print(command)
             retcode = subprocess.run(

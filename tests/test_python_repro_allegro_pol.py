@@ -65,7 +65,7 @@ def _build_backend_combinations():
     [1, 2, 4],
 )
 def test_repro(
-    deployed_allegro_model,
+    deployed_allegro_pol_model,
     kokkos: bool,
     openmp: bool,
     device: str,
@@ -73,7 +73,7 @@ def test_repro(
     n_rank: int,
 ):
     structure: ase.Atoms
-    model_tmpdir, calc, structures, config, tol = deployed_allegro_model
+    model_tmpdir, calc, structures, config, tol = deployed_allegro_pol_model
     model_file_path = model_tmpdir + f"/{device}_" + COMPILE_MODES[compile_mode]
 
     # decide which tests to use `n_rank` > 1
