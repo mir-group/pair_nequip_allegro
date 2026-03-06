@@ -123,7 +123,7 @@ def test_repro(
         compute allegroforces all allegro/atom forces 3 1
         compute polarization all allegro polarization 3
         compute polarizability all allegro polarizability 9
-        compute borncharges all allegro/atom born_charge 9 1
+        compute borncharges all allegro/atom born_effective_charges 9 1
         compute totalatomicenergy all reduce sum c_atomicenergies
         compute stress all pressure NULL virial  # NULL means without temperature contribution
 
