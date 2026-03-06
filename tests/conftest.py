@@ -85,6 +85,23 @@ def model_dtype(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        ("BaTiO3.xyz", ["Ba", "Ti", "O"], 5.0),
+    ],
+    scope="session",
+)
+def dataset_options_allegro_pol(request):
+    out = dict(
+        zip(
+            ["dataset_file_name", "chemical_symbols", "cutoff_radius"],
+            request.param,
+        )
+    )
+    out["dataset_file_name"] = TESTS_DIR / ("test_data/" + out["dataset_file_name"])
+    return out
+
+
 def _check_and_print(retcode, encoding="ascii"):
     __tracebackhide__ = True
     if retcode.returncode:
@@ -94,6 +111,17 @@ def _check_and_print(retcode, encoding="ascii"):
             print(retcode.stderr.decode(encoding, errors="replace"), file=sys.stderr)
         retcode.check_returncode()
 
+def route_model_name(model_name):
+    #Allegro pol can have multiple --target variations, but one central config
+    if model_name.startswith("allegro_pol"):
+        config_name = "allegro_pol"
+        compile_target = model_name
+    else:
+        config_name = model_name
+        compile_target = model_name
+
+    return config_name,compile_target
+
 
 @pytest.fixture(scope="session")
 def deployed_allegro_model(model_dtype, dataset_options):
@@ -101,10 +129,9 @@ def deployed_allegro_model(model_dtype, dataset_options):
         yield deployed_model("allegro", tmpdir, model_dtype, dataset_options)
 
 @pytest.fixture(scope="session")
-def deployed_allegro_pol_model(model_dtype, dataset_options):
+def deployed_allegro_pol_model(model_dtype, dataset_options_allegro_pol):
     with tempfile.TemporaryDirectory() as tmpdir:
-        yield deployed_model("allegro_pol_bc", tmpdir, model_dtype, dataset_options)
-
+        yield deployed_model("allegro_pol_bc", tmpdir, model_dtype, dataset_options_allegro_pol)
 
 @pytest.fixture(scope="session")
 def deployed_nequip_model(model_dtype, dataset_options):
@@ -124,13 +151,7 @@ def deployed_model(nequip_or_allegro_or_allegro_pol, tmpdir, dtype, dataset_opti
     if dataset_options["dataset_file_name"] == "aspirin.xyz":
         tol *= 23
 
-    model_name = nequip_or_allegro_or_allegro_pol
-    if model_name.startswith("allegro_pol"):
-        config_name = "allegro_pol"
-        compile_target = model_name
-    else:
-        config_name = model_name
-        compile_target = model_name
+    config_name,compile_target = route_model_name(nequip_or_allegro_or_allegro_pol)
 
     # === setup config from template ===
     config = OmegaConf.load(

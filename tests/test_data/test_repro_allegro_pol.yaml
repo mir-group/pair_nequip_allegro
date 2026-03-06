@@ -12,9 +12,9 @@ data:
   seed: ${seed}
   split_dataset:
     file_path: ${dataset_file_name}
-    train: 2
-    val: 2
-    test: 2
+    train: 5
+    val: 5
+    test: 5
   include_keys:
     - polarization
     - polarizability
