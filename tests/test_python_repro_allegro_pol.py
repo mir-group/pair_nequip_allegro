@@ -50,6 +50,26 @@ def _build_backend_combinations():
 
     return combinations
 
+def _add_efield(structure: ase.Atoms,efield: np.ndarray):
+    forces = structure.get_forces()
+    potential_energy = structure.get_potential_energy()
+
+    polarization = structure.calc.results["polarization"]
+    polarizability = structure.calc.results["polarizability"]
+    born_charges = structure.calc.results["born_effective_charges"]
+    
+    force_correction = np.einsum("ikj,...j->ij",born_charges,efield)
+    
+    polarization_correction = np.einsum("...ki,...i->",polarizability,efield)
+    polarization_withfield = polarization + polarization_correction
+    
+    energy_correction = -np.einsum("...i,...i->",polarization_withfield,efield)
+
+    forces_withfield = forces + force_correction
+    energy_withfield = potential_energy + energy_correction
+    
+    return energy_withfield,forces_withfield,polarization_withfield
+
 
 @pytest.mark.parametrize(
     "kokkos,openmp,device",
@@ -90,6 +110,11 @@ def test_repro(
 
     num_types = len(config["chemical_symbols"])
 
+    efield_x = 0.0
+    efield_y = 0.0
+    efield_z = 1e-2*1.5
+    efield = np.array([efield_x,efield_y,efield_z])
+
     newline = "\n"
     periodic = all(structures[0].pbc)
     PRECISION_CONST: float = 1e6
@@ -126,14 +151,20 @@ def test_repro(
         compute borncharges all allegro/atom born_effective_charges 9 1
         compute totalatomicenergy all reduce sum c_atomicenergies
         compute stress all pressure NULL virial  # NULL means without temperature contribution
+        variable efieldx equal {efield_x}
+        variable efieldy equal {efield_y}
+        variable efieldz equal {efield_z}
+        fix born all addbornforce v_efieldx v_efieldy v_efieldz
 
-        thermo_style custom step time temp pe c_totalatomicenergy etotal press spcpu cpuremain c_stress[*] c_polarization[*] c_polarizability[*]
+        thermo_style custom step time temp pe c_totalatomicenergy etotal press spcpu cpuremain c_stress[*] c_polarization[*] c_polarizability[*] f_born f_born[*]
         run 0
         print "$({PRECISION_CONST} * c_stress[1]) $({PRECISION_CONST} * c_stress[2]) $({PRECISION_CONST} * c_stress[3]) $({PRECISION_CONST} * c_stress[4]) $({PRECISION_CONST} * c_stress[5]) $({PRECISION_CONST} * c_stress[6])" file stress.dat
         print "$({PRECISION_CONST} * c_polarization[1]) $({PRECISION_CONST} * c_polarization[2]) $({PRECISION_CONST} * c_polarization[3])" file polarization.dat
         print "$({PRECISION_CONST} * c_polarizability[1]) $({PRECISION_CONST} * c_polarizability[2]) $({PRECISION_CONST} * c_polarizability[3]) $({PRECISION_CONST} * c_polarizability[4]) $({PRECISION_CONST} * c_polarizability[5]) $({PRECISION_CONST} * c_polarizability[6]) $({PRECISION_CONST} * c_polarizability[7]) $({PRECISION_CONST} * c_polarizability[8]) $({PRECISION_CONST} * c_polarizability[9])" file polarizability.dat
         print $({PRECISION_CONST} * pe) file pe.dat
         print $({PRECISION_CONST} * c_totalatomicenergy) file totalatomicenergy.dat
+        print $({PRECISION_CONST} * f_born) file addbornforceenergy.dat
+        print "$({PRECISION_CONST} * f_born[1]) $({PRECISION_CONST} * f_born[2]) $({PRECISION_CONST} * f_born[3])" file addbornforcepolarization.dat
         write_dump all custom output.dump id type x y z fx fy fz c_atomicenergies c_allegroatomicenergies c_allegroforces[*] c_borncharges[*] modify format float %20.15g
         """
     )
@@ -319,18 +350,47 @@ def test_repro(
             structure.calc = calc
 
             # check output atomic quantities
+            # These energy and forces are the forces from the model adjusted by the addbornforce fix and should match ASE with Efield adjustment.
+            
+            ase_energy_withfield, ase_forces_withfield,ase_polarization_withfield = _add_efield(structure,efield)
             max_force_err = np.max(
-                np.abs(structure.get_forces() - lammps_result.get_forces())
+                np.abs(ase_forces_withfield - lammps_result.get_forces())
             )
-            max_force_comp = np.max(np.abs(structure.get_forces()))
-            force_rms = np.sqrt(np.mean(np.square(structure.get_forces())))
+            max_force_comp = np.max(np.abs(ase_forces_withfield))
+            force_rms = np.sqrt(np.mean(np.square(ase_forces_withfield)))
             np.testing.assert_allclose(
-                structure.get_forces(),
+                ase_forces_withfield,
                 lammps_result.get_forces(),
                 atol=tol,
                 rtol=tol,
                 err_msg=f"Force max abs err: {max_force_err:.8g} (atol/rtol={tol:.3g}). Max force component: {max_force_comp}, Force RMS: {force_rms}",
             )
+
+            lammps_potentialenergy = (
+                np.fromstring(
+                    Path(tmpdir + "/pe.dat").read_text(),
+                    sep=" ",
+                    dtype=np.float64,
+                )
+                / PRECISION_CONST
+            )
+            lammps_addbornforceenergy = (
+                np.fromstring(
+                    Path(tmpdir + "/addbornforceenergy.dat").read_text(),
+                    sep=" ",
+                    dtype=np.float64,
+                )
+                / PRECISION_CONST
+            )
+            np.testing.assert_allclose(
+                ase_energy_withfield,
+                lammps_potentialenergy + lammps_addbornforceenergy,
+                atol=tol,
+                rtol=tol,
+                err_msg=f"Energy w/field err: {ase_energy_withfield - (lammps_potentialenergy + lammps_addbornforceenergy):.8g}.",
+            )
+            
+            # These energies are the raw outputs from the model and should match ASE without Efield adjustment.
             np.testing.assert_allclose(
                 structure.get_potential_energies(),
                 lammps_result.arrays["c_atomicenergies"].reshape(-1),
@@ -338,6 +398,7 @@ def test_repro(
                 rtol=tol,
                 err_msg=f"Max atomic energy error: {np.abs(structure.get_potential_energies() - lammps_result.arrays['c_atomicenergies'].reshape(-1)).max()}",
             )
+
             np.testing.assert_allclose(
                 structure.get_potential_energies(),
                 lammps_result.arrays["c_allegroatomicenergies"].reshape(-1),
@@ -347,6 +408,7 @@ def test_repro(
             )
 
             
+            # These forces are the raw outputs from the model and should match ASE without Efield adjustment.
             ase_forces = structure.get_forces()
             lammps_allegroforces = np.zeros_like(ase_forces)
             lammps_allegroforces[:,0] = lammps_result.arrays["c_allegroforces[1]"].reshape(-1)
@@ -355,18 +417,8 @@ def test_repro(
             max_force_err = np.max(
                 np.abs(structure.get_forces() - lammps_allegroforces)
             )
-            min_force_err = np.min(
-                np.abs(structure.get_forces() - lammps_allegroforces)
-            )
             max_force_comp = np.max(np.abs(structure.get_forces()))
             force_rms = np.sqrt(np.mean(np.square(structure.get_forces())))
-            np.testing.assert_allclose(
-                lammps_result.get_forces(),
-                lammps_allegroforces,
-                atol=tol,
-                rtol=tol,
-                err_msg=f"Max compute forces abs err: {max_force_err:.8g} (atol/rtol={tol:.3g}). Min abs err: {min_force_err:.8g}. Max force component: {max_force_comp}, Force RMS: {force_rms}",
-            )
             np.testing.assert_allclose(
                 ase_forces,
                 lammps_allegroforces,
@@ -392,6 +444,23 @@ def test_repro(
                 atol=tol,
                 rtol=tol,
                 err_msg=f"Polarization error: {np.abs(ase_polarization - lammps_polarization).max()}",
+            )
+
+            #We add the extrapolarization computed by the fix to the lammps polarization and compare with thease (model) polarization with correction.
+            lammps_addbornforcepolarization = (
+                np.fromstring(
+                    Path(tmpdir + "/addbornforcepolarization.dat").read_text(),
+                    sep=" ",
+                    dtype=np.float64,
+                )
+                / PRECISION_CONST
+            )
+            np.testing.assert_allclose(
+                ase_polarization_withfield,
+                lammps_polarization + lammps_addbornforcepolarization,
+                atol=tol,
+                rtol=tol,
+                err_msg=f"Polarization error: {np.abs(ase_polarization_withfield - (lammps_polarization + lammps_addbornforcepolarization)).max()}",
             )
 
             ase_polarizability = structure.calc.results["polarizability"]
