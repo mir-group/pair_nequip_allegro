@@ -306,8 +306,14 @@ void FixAddBornForce::post_force(int vflag) {
 
         // row-vector efield * Born charge matrix
         // since Zij = dFj/dei = dPi/drj
+        if (i == 0){
+        std::cout << "orig_force " << f[i][0] << " " << f[i][1] << " " << f[i][2] << " " << std::endl;
+        }
         for (int j = 0; j < 3; j++) {
           f[i][j] += xvalue * born[i][0][j] + yvalue*born[i][1][j] + zvalue*born[i][2][j];
+        }
+        if (i == 0){
+        std::cout << "corrected_force " << f[i][0] << " " << f[i][1] << " " << f[i][2] << " " << std::endl;
         }
       }
     }
