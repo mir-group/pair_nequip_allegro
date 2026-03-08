@@ -67,6 +67,14 @@ def _add_efield(structure: ase.Atoms,efield: np.ndarray):
 
     forces_withfield = forces + force_correction
     energy_withfield = potential_energy + energy_correction
+
+    print("ASE forces",forces)
+    print("ASE energy",potential_energy)
+    print("ASE polarizability",polarizability)
+
+    print("ASE force correction",force_correction)
+    print("ASE energy correction",energy_correction)
+
     
     return energy_withfield,forces_withfield,polarization_withfield
 
@@ -358,6 +366,15 @@ def test_repro(
             )
             max_force_comp = np.max(np.abs(ase_forces_withfield))
             force_rms = np.sqrt(np.mean(np.square(ase_forces_withfield)))
+
+            #Temporary 
+            lammps_allegroforces = np.zeros_like(ase_forces_withfield)
+            lammps_allegroforces[:,0] = lammps_result.arrays["c_allegroforces[1]"].reshape(-1)
+            lammps_allegroforces[:,1] = lammps_result.arrays["c_allegroforces[2]"].reshape(-1)
+            lammps_allegroforces[:,2] = lammps_result.arrays["c_allegroforces[3]"].reshape(-1)
+            print("Lammps forces",lammps_result.get_forces())
+            print("Raw lammps forces",lammps_allegroforces)
+
             np.testing.assert_allclose(
                 ase_forces_withfield,
                 lammps_result.get_forces(),
