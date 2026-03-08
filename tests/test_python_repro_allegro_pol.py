@@ -68,12 +68,16 @@ def _add_efield(structure: ase.Atoms,efield: np.ndarray):
     forces_withfield = forces + force_correction
     energy_withfield = potential_energy + energy_correction
 
-    print("ASE forces",forces)
+    #print("ASE forces",forces)
     print("ASE energy",potential_energy)
     print("ASE polarizability",polarizability)
 
-    print("ASE force correction",force_correction)
+    #print("ASE force correction",force_correction)
     print("ASE energy correction",energy_correction)
+
+    print("ASE polarization",polarization)
+    print("ASE polarization correction",polarization_correction)
+    print("ASE polarization with field",polarization_withfield)
 
     
     return energy_withfield,forces_withfield,polarization_withfield
@@ -372,8 +376,8 @@ def test_repro(
             lammps_allegroforces[:,0] = lammps_result.arrays["c_allegroforces[1]"].reshape(-1)
             lammps_allegroforces[:,1] = lammps_result.arrays["c_allegroforces[2]"].reshape(-1)
             lammps_allegroforces[:,2] = lammps_result.arrays["c_allegroforces[3]"].reshape(-1)
-            print("Lammps forces",lammps_result.get_forces())
-            print("Raw lammps forces",lammps_allegroforces)
+            #print("Lammps forces",lammps_result.get_forces())
+            #print("Raw lammps forces",lammps_allegroforces)
 
             np.testing.assert_allclose(
                 ase_forces_withfield,
@@ -399,12 +403,39 @@ def test_repro(
                 )
                 / PRECISION_CONST
             )
+
+            print("Raw lammps energy",lammps_potentialenergy)
+            print("LAMMPS E field correction energy",lammps_addbornforceenergy)
+            print("Sum",lammps_potentialenergy + lammps_addbornforceenergy)
+
+            #Temporarily put this up here:
+            lammps_polarization = (
+                np.fromstring(
+                    Path(tmpdir + "/polarization.dat").read_text(),
+                    sep=" ",
+                    dtype=np.float64,
+                )
+                / PRECISION_CONST
+            )
+
+            lammps_addbornforcepolarization = (
+                np.fromstring(
+                    Path(tmpdir + "/addbornforcepolarization.dat").read_text(),
+                    sep=" ",
+                    dtype=np.float64,
+                )
+                / PRECISION_CONST
+            )
+            print("Raw LAMMPS polarization",lammps_polarization)
+            print("LAMMPS E field correction polarization",lammps_addbornforcepolarization)
+            print("Sum LAMMPS polarizations",lammps_polarization + lammps_addbornforcepolarization)
+
             np.testing.assert_allclose(
                 ase_energy_withfield,
                 lammps_potentialenergy + lammps_addbornforceenergy,
                 atol=tol,
                 rtol=tol,
-                err_msg=f"Energy w/field err: {ase_energy_withfield - (lammps_potentialenergy + lammps_addbornforceenergy):.8g}.",
+                err_msg=f"Energy w/field err: {np.abs(ase_energy_withfield - (lammps_potentialenergy + lammps_addbornforceenergy)).max():.8g}.",
             )
             
             # These energies are the raw outputs from the model and should match ASE without Efield adjustment.
