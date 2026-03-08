@@ -105,7 +105,7 @@ FixAddBornForce::FixAddBornForce(LAMMPS *lmp, int narg, char **arg)
   datamask_modify = F_MASK;
 
   //TODO Here and in compute: does it matter that this is specifying <nequip_mode=0>?
-  ((PairNequIPAllegro<0> *) force->pair)->add_custom_output("born_charge");
+  ((PairNequIPAllegro<0> *) force->pair)->add_custom_output("born_effective_charges");
   ((PairNequIPAllegro<0> *) force->pair)->add_custom_output("polarization");
   ((PairNequIPAllegro<0> *) force->pair)->add_custom_output("polarizability");
 }
