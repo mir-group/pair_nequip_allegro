@@ -58,9 +58,9 @@ def _add_efield(structure: ase.Atoms,efield: np.ndarray):
     polarizability = structure.calc.results["polarizability"]
     born_charges = structure.calc.results["born_effective_charges"]
     
-    force_correction = np.einsum("ikj,...j->ij",born_charges,efield)
+    force_correction = np.einsum("ikj,k->ij",born_charges,efield)
     
-    polarization_correction = np.einsum("...ki,...i->",polarizability,efield)
+    polarization_correction = np.einsum("...ij,...i->...j",polarizability,efield)
     polarization_withfield = polarization + polarization_correction
     
     energy_correction = -np.einsum("...i,...i->",polarization_withfield,efield)
