@@ -460,7 +460,7 @@ def test_repro(
                 lammps_polarization + lammps_addbornforcepolarization,
                 atol=tol,
                 rtol=tol,
-                err_msg=f"Polarization error: {np.abs(ase_polarization_withfield - (lammps_polarization + lammps_addbornforcepolarization)).max()}",
+                err_msg=f"Polarization w/Efield error: {np.abs(ase_polarization_withfield - (lammps_polarization + lammps_addbornforcepolarization)).max()}",
             )
 
             ase_polarizability = structure.calc.results["polarizability"]

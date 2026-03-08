@@ -53,12 +53,18 @@ then
     for file in *_allegro.*; do
         ln -s `realpath -s $file` $lammps_dir/src/$file
     done
+    for file in fix_addbornforce.*; do
+        ln -s `realpath -s $file` $lammps_dir/src/$file
+    done
     for file in *_allegro_kokkos.*; do
         ln -s `realpath -s $file` $lammps_dir/src/KOKKOS/$file
     done
 else
     echo "Copying files..."
     for file in *_allegro.*; do
+        cp $file $lammps_dir/src/$file
+    done
+    for file in fix_addbornforce.*; do
         cp $file $lammps_dir/src/$file
     done
     for file in *_allegro_kokkos.*; do
