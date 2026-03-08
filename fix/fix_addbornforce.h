@@ -56,7 +56,6 @@ private:
 
   int maxatom;
   double **efieldatom;
-  torch::Tensor born_tensor;
 };
 
 } // namespace LAMMPS_NS

@@ -98,6 +98,12 @@ FixAddBornForce::FixAddBornForce(LAMMPS *lmp, int narg, char **arg)
 
   maxatom = 1;
   memory->create(efieldatom, maxatom, 3, "addbornforce:efieldatom");
+  //Store born charges in the fix to be communicated. In the case that a user has both the compute and the fix active, we cannot do reverse comm using the raw born_tensor from the model.
+  peratom_flag = 1;
+  size_peratom_cols = 9;
+  peratom_freq = 1;
+  memory->create(array_atom, maxatom, size_peratom_cols,
+                 "addbornforce:array_atom");
 
   // KOKKOS package
 
@@ -118,6 +124,7 @@ FixAddBornForce::~FixAddBornForce() {
   delete[] zstr;
   delete[] idregion;
   memory->destroy(efieldatom);
+  memory->destroy(array_atom);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -230,12 +237,14 @@ void FixAddBornForce::post_force(int vflag) {
   if (region)
     region->prematch();
 
-  // reallocate efieldatom array if necessary
-
-  if (varflag == ATOM && atom->nmax > maxatom) {
+  // reallocate efieldatom/array_atom if necessary
+  if (atom->nmax > maxatom) {
     maxatom = atom->nmax;
     memory->destroy(efieldatom);
     memory->create(efieldatom, maxatom, 3, "addbornforce:efieldatom");
+    memory->destroy(array_atom);
+    memory->create(array_atom, maxatom, size_peratom_cols,
+                   "addbornforce:array_atom");
   }
 
   reduced_flag = 0;
@@ -243,9 +252,21 @@ void FixAddBornForce::post_force(int vflag) {
 
   torch::Tensor born_tensor =
     ((PairNequIPAllegro<0> *) force->pair)->custom_output.at("born_effective_charges").cpu();
-  this->born_tensor = born_tensor;
-
   auto born = born_tensor.accessor<double,3>();
+  int nborn = born_tensor.size(0);
+  int ntotal = atom->nlocal + atom->nghost;
+  if (nborn < ntotal) {
+    for (int i = 0; i < ntotal; i++) {
+      for (int j = 0; j < size_peratom_cols; j++) array_atom[i][j] = 0.0;
+    }
+  }
+  for (int i = 0; i < nborn; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        array_atom[i][j * 3 + k] = born[i][j][k];
+      }
+    }
+  }
 
   // reverse comm and add up Born charges, Newton-style
   comm->reverse_comm(this, 9);
@@ -263,7 +284,9 @@ void FixAddBornForce::post_force(int vflag) {
         // row-vector efield * Born charge matrix
         // since Zij = dFj/dei = dPi/drj
         for (int j = 0; j < 3; j++) {
-          f[i][j] += xvalue * born[i][0][j] + yvalue*born[i][1][j] + zvalue*born[i][2][j];
+          f[i][j] += xvalue * array_atom[i][0 * 3 + j]
+                   + yvalue * array_atom[i][1 * 3 + j]
+                   + zvalue * array_atom[i][2 * 3 + j];
         }
       }
 
@@ -307,7 +330,9 @@ void FixAddBornForce::post_force(int vflag) {
         // row-vector efield * Born charge matrix
         // since Zij = dFj/dei = dPi/drj
         for (int j = 0; j < 3; j++) {
-          f[i][j] += xvalue * born[i][0][j] + yvalue*born[i][1][j] + zvalue*born[i][2][j];
+          f[i][j] += xvalue * array_atom[i][0 * 3 + j]
+                   + yvalue * array_atom[i][1 * 3 + j]
+                   + zvalue * array_atom[i][2 * 3 + j];
         }
       }
     }
@@ -340,31 +365,22 @@ void FixAddBornForce::post_force(int vflag) {
 void FixAddBornForce::min_post_force(int vflag) { post_force(vflag); }
 
 int FixAddBornForce::pack_reverse_comm(int n, int first, double *buf){
-  auto born = born_tensor.accessor<double,3>();
   int m = 0;
   int last = first + n;
 
   for (int i = first; i < last; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        buf[m++] = born[i][j][k];
-      }
-    }
+    for (int j = 0; j < size_peratom_cols; j++) buf[m++] = array_atom[i][j];
   }
   return m;
 }
 
 void FixAddBornForce::unpack_reverse_comm(int n, int *list, double *buf){
-  auto born = born_tensor.accessor<double,3>();
   int m = 0;
 
   for (int i = 0; i < n; i++) {
     int ii = list[i];
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        born[ii][j][k] += buf[m++];
-      }
-    }
+    for (int j = 0; j < size_peratom_cols; j++)
+      array_atom[ii][j] += buf[m++];
   }
 }
 
@@ -401,6 +417,7 @@ double FixAddBornForce::compute_vector(int n) {
 double FixAddBornForce::memory_usage() {
   double bytes = 0.0;
   if (varflag == ATOM)
-    bytes = maxatom * 3 * sizeof(double);
+    bytes = maxatom * 3 * sizeof(double); //efield atom
+  bytes += maxatom * size_peratom_cols * sizeof(double); //array_atom (born charge tensor)
   return bytes;
 }
