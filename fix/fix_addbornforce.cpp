@@ -242,7 +242,7 @@ void FixAddBornForce::post_force(int vflag) {
   extraenergy = extrapolarization[0] = extrapolarization[1] = extrapolarization[2] = 0.0;
 
   torch::Tensor born_tensor =
-    ((PairNequIPAllegro<0> *) force->pair)->custom_output.at("born_charge").cpu();
+    ((PairNequIPAllegro<0> *) force->pair)->custom_output.at("born_effective_charges").cpu();
   this->born_tensor = born_tensor;
 
   auto born = born_tensor.accessor<double,3>();
