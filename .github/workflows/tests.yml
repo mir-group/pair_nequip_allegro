@@ -58,6 +58,12 @@ jobs:
           ssh_keys: "${{ secrets.NEQUIP_KEY }}:${{ secrets.ALLEGRO_KEY }}"
           private_flag: ${{ github.event.repository.private}}
           branch: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name}}
+      - name: Clone Allegro-Pol
+        uses: mir-group/nequip-gh-actions/clone@main
+        with:
+          package_names: "allegro-pol"
+          private_flag: ${{ false }}
+          branch: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name}}
       - name: Install Test Dependencies
         run: |
           pip install setuptools wheel pytest pytest-xdist[psutil]
@@ -65,6 +71,7 @@ jobs:
           pip install "lightning<2.6.0"
           pip install --upgrade-strategy only-if-needed ./nequip
           pip install --upgrade-strategy only-if-needed ./allegro
+          pip install --upgrade-strategy only-if-needed ./allegro-pol
       - name: Fetch and build LAMMPS
         run: |
           mkdir lammps_dir/
@@ -72,6 +79,7 @@ jobs:
           git clone --branch release --depth 1 "https://github.com/lammps/lammps"
           cd ..
           cp ./compute/* .
+          cp ./fix/* .
           ./patch_lammps.sh lammps_dir/lammps/
           cd lammps_dir/lammps/
           mkdir build/

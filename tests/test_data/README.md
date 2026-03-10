@@ -2,4 +2,6 @@
 
 `Cu₂AgO₄` is from the Materials Project, mp-1225882.
 
+`BaTiO3.xyz` frames are taken from https://github.com/mir-group/allegro-pol/blob/main/data/BaTiO3.xyz
+
 Force data is fake and for testing only; it comes from the ASE built-in EMT calculator.

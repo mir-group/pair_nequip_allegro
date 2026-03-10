@@ -367,6 +367,13 @@ template <bool nequip_mode> void PairNequIPAllegro<nequip_mode>::compute(int efl
   auto input = preprocess();
   // evaluate model
   auto output = call(input);
+  if (debug_mode && comm->me == 0) {
+    std::cout << "NequIP/Allegro: Model outputs:";
+    for (const auto &elem : output) {
+      std::cout << " " << elem.key() << elem.value().sizes();
+    }
+    std::cout << "\n";
+  }
 
   // extract forces and energies as CPU tensors
   torch::Tensor forces_tensor = output.at("forces").cpu();

@@ -61,6 +61,10 @@ From the `pair_nequip_allegro` directory, run:
 ./patch_lammps.sh /path/to/lammps/
 ```
 
+*Note: If you wish to extract outputs from NequIP or Allegro models, enable `compute nequip` and `compute allegro` by `cp ./compute/* .` before patching lammps.*
+
+*Note: If you aim to run dynamics with Allegro-Pol models under an electric field, you will need to enable `fix addbornforce` by `cp ./fix/* .` before patching lammps.*
+
 ### Configure LAMMPS with CMake
 
 For general information on building LAMMPS with CMake, see [the LAMMPS documentation](https://docs.lammps.org/Build_cmake.html).

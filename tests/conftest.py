@@ -13,6 +13,7 @@ import torch
 from nequip.data import to_ase
 from nequip.utils.global_dtype import _GLOBAL_DTYPE
 from nequip.ase import NequIPCalculator
+from allegro_pol.integrations.ase import NequIPPolCalculator
 from omegaconf import OmegaConf, open_dict
 from hydra.utils import instantiate
 
@@ -85,6 +86,23 @@ def model_dtype(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        ("BaTiO3.xyz", ["Ba", "Ti", "O"], 5.0),
+    ],
+    scope="session",
+)
+def dataset_options_allegro_pol(request):
+    out = dict(
+        zip(
+            ["dataset_file_name", "chemical_symbols", "cutoff_radius"],
+            request.param,
+        )
+    )
+    out["dataset_file_name"] = TESTS_DIR / ("test_data/" + out["dataset_file_name"])
+    return out
+
+
 def _check_and_print(retcode, encoding="ascii"):
     __tracebackhide__ = True
     if retcode.returncode:
@@ -94,12 +112,27 @@ def _check_and_print(retcode, encoding="ascii"):
             print(retcode.stderr.decode(encoding, errors="replace"), file=sys.stderr)
         retcode.check_returncode()
 
+def route_model_name(model_name):
+    #Allegro pol can have multiple --target variations, but one central config
+    if model_name.startswith("allegro_pol"):
+        config_name = "allegro_pol"
+        compile_target = model_name
+    else:
+        config_name = model_name
+        compile_target = model_name
+
+    return config_name,compile_target
+
 
 @pytest.fixture(scope="session")
 def deployed_allegro_model(model_dtype, dataset_options):
     with tempfile.TemporaryDirectory() as tmpdir:
         yield deployed_model("allegro", tmpdir, model_dtype, dataset_options)
 
+@pytest.fixture(scope="session")
+def deployed_allegro_pol_model(model_dtype, dataset_options_allegro_pol):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield deployed_model("allegro_pol_bc", tmpdir, model_dtype, dataset_options_allegro_pol)
 
 @pytest.fixture(scope="session")
 def deployed_nequip_model(model_dtype, dataset_options):
@@ -107,7 +140,7 @@ def deployed_nequip_model(model_dtype, dataset_options):
         yield deployed_model("nequip", tmpdir, model_dtype, dataset_options)
 
 
-def deployed_model(nequip_or_allegro, tmpdir, dtype, dataset_options):
+def deployed_model(nequip_or_allegro_or_allegro_pol, tmpdir, dtype, dataset_options):
 
     devices = ["cpu"]
     if torch.cuda.is_available():
@@ -119,9 +152,11 @@ def deployed_model(nequip_or_allegro, tmpdir, dtype, dataset_options):
     if dataset_options["dataset_file_name"] == "aspirin.xyz":
         tol *= 23
 
+    config_name,compile_target = route_model_name(nequip_or_allegro_or_allegro_pol)
+
     # === setup config from template ===
     config = OmegaConf.load(
-        str(TESTS_DIR / f"test_data/test_repro_{nequip_or_allegro}.yaml")
+        str(TESTS_DIR / f"test_data/test_repro_{config_name}.yaml")
     )
     with open_dict(config):
         # the checkpoint file `last.ckpt` will be located in the hydra runtime directory
@@ -156,7 +191,7 @@ def deployed_model(nequip_or_allegro, tmpdir, dtype, dataset_options):
                 device,
                 # target accepted as argument for both modes, but unused for torchscript mode
                 "--target",
-                f"pair_{nequip_or_allegro}",
+                f"pair_{compile_target}",
             ]
             print(command)
             retcode = subprocess.run(
@@ -195,8 +230,14 @@ def deployed_model(nequip_or_allegro, tmpdir, dtype, dataset_options):
         s.wrap()
     structures = structures[:1]
 
-    calc = NequIPCalculator._from_saved_model(
-        checkpoint_path,
-        chemical_symbols=config["chemical_symbols"],
-    )
+    if config_name == "allegro_pol":
+        calc = NequIPPolCalculator._from_saved_model(
+            checkpoint_path,
+            chemical_symbols=config["chemical_symbols"],
+        )
+    else:
+        calc = NequIPCalculator._from_saved_model(
+            checkpoint_path,
+            chemical_symbols=config["chemical_symbols"],
+        )
     return tmpdir, calc, structures, config, tol

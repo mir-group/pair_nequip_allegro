@@ -81,7 +81,7 @@ ComputeNequIPAllegro<nequip_mode, peratom>::ComputeNequIPAllegro(LAMMPS *lmp, in
     size_peratom_cols = nperatom == 1 ? 0 : nperatom;
     nmax = -12;
     if (comm->me == 0)
-      utils::logmesg(lmp, "compute {}/atom will evaluate the quantity {} of length {} with newton {}", compute_name,
+      utils::logmesg(lmp, "compute {}/atom will evaluate the quantity {} of length {} with newton {}\n", compute_name,
                      quantity, size_peratom_cols, newton);
   }
   else
@@ -94,7 +94,7 @@ ComputeNequIPAllegro<nequip_mode, peratom>::ComputeNequIPAllegro(LAMMPS *lmp, in
       error->all(FLERR, "Incorrect vector length!");
     memory->create(vector, size_vector, "ComputeNequIPAllegro:vector");
     if (comm->me == 0)
-      utils::logmesg(lmp, "compute {} will evaluate the quantity {} of length {}", compute_name,
+      utils::logmesg(lmp, "compute {} will evaluate the quantity {} of length {}\n", compute_name,
                      quantity, size_vector);
   }
 
