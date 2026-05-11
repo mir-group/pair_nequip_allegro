@@ -3,18 +3,32 @@
 
 do_e_mode=false
 
-while getopts "hek" option; do
-   case $option in
-      e)
-         do_e_mode=true;;
-      h) # display Help
-         echo "patch_lammps.sh [-e] /path/to/lammps/"
-         exit;;
-   esac
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -e)
+      do_e_mode=true
+      shift
+      ;;
+    -h|--help)
+      echo "patch_lammps.sh [-e] /path/to/lammps/"
+      exit
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "Unknown option: $1"
+      echo "patch_lammps.sh [-e] /path/to/lammps/"
+      exit 1
+      ;;
+    *)
+      break
+      ;;
+  esac
 done
 
 # https://stackoverflow.com/a/9472919
-shift $(($OPTIND - 1))
 lammps_dir=$1
 
 if [ "$lammps_dir" = "" ];
@@ -51,21 +65,27 @@ if [ "$do_e_mode" = true ]
 then
     echo "Making source symlinks (-e)..."
     for file in *_allegro.*; do
-        ln -s `realpath -s $file` $lammps_dir/src/$file
+        ln -sf `realpath -s $file` $lammps_dir/src/$file
     done
-    for file in fix_addbornforce.*; do
-        ln -s `realpath -s $file` $lammps_dir/src/$file
+    for file in ./fix/fix_addbornforce.*; do
+        ln -sf `realpath -s $file` $lammps_dir/src/$(basename $file)
+    done
+    for file in ./compute/compute_nequip_allegro.*; do
+        ln -sf `realpath -s $file` $lammps_dir/src/$(basename $file)
     done
     for file in *_allegro_kokkos.*; do
-        ln -s `realpath -s $file` $lammps_dir/src/KOKKOS/$file
+        ln -sf `realpath -s $file` $lammps_dir/src/KOKKOS/$file
     done
 else
     echo "Copying files..."
     for file in *_allegro.*; do
         cp $file $lammps_dir/src/$file
     done
-    for file in fix_addbornforce.*; do
-        cp $file $lammps_dir/src/$file
+    for file in ./fix/fix_addbornforce.*; do
+        cp $file $lammps_dir/src/$(basename $file)
+    done
+    for file in ./compute/compute_nequip_allegro.*; do
+        cp $file $lammps_dir/src/$(basename $file)
     done
     for file in *_allegro_kokkos.*; do
         cp $file $lammps_dir/src/KOKKOS/$file
