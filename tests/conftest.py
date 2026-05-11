@@ -80,7 +80,9 @@ def dataset_options(request):
             request.param,
         )
     )
-    out["dataset_file_name"] = TESTS_DIR / ("test_data/" + out["dataset_file_name"])
+    out["dataset_file_name"] = str(
+        TESTS_DIR / ("test_data/" + out["dataset_file_name"])
+    )
     return out
 
 
@@ -105,7 +107,9 @@ def dataset_options_allegro_pol(request):
             request.param,
         )
     )
-    out["dataset_file_name"] = TESTS_DIR / ("test_data/" + out["dataset_file_name"])
+    out["dataset_file_name"] = str(
+        TESTS_DIR / ("test_data/" + out["dataset_file_name"])
+    )
     return out
 
 
