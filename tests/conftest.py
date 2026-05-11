@@ -43,7 +43,9 @@ HAS_KOKKOS_CUDA: bool = b"KOKKOS package API: CUDA" in _lmp_help
 HAS_OPENMP: bool = b"OPENMP" in _lmp_help
 
 if not HAS_KOKKOS:
-    warnings.warn("Not testing pair_allegro with Kokkos since it wasn't built with it")
+    warnings.warn(
+        "Not testing pair_nequip_allegro Kokkos path since LAMMPS wasn't built with it"
+    )
 if HAS_KOKKOS and torch.cuda.is_available() and not HAS_KOKKOS_CUDA:
     warnings.warn("Kokkos not built with CUDA even though CUDA is available")
 if not HAS_OPENMP:
