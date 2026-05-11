@@ -55,15 +55,11 @@ git clone --depth=1 https://github.com/mir-group/pair_nequip_allegro
 ```
 or by downloading a ZIP of the source.
 
-### Patch LAMMPS
+### Patch LAMMPS for the pair nequip and pair allegro pair styles
 From the `pair_nequip_allegro` directory, run:
 ```bash
 ./patch_lammps.sh /path/to/lammps/
 ```
-
-*Note: If you wish to extract outputs from NequIP or Allegro models, enable `compute nequip` and `compute allegro` by `cp ./compute/* .` before patching lammps.*
-
-*Note: If you aim to run dynamics with Allegro-Pol models under an electric field, you will need to enable `fix addbornforce` by `cp ./fix/* .` before patching lammps.*
 
 ### Configure LAMMPS with CMake
 
