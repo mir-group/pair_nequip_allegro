@@ -330,7 +330,7 @@ def test_repro(
                         e[:2] for e in nq_edge_tuples
                     )
                     # finally, check for each ij whether the the "sets" of edge lengths match
-                    nq_ijr = np.core.records.fromarrays(
+                    nq_ijr = np.rec.fromarrays(
                         (
                             structure_data[AtomicDataDict.EDGE_INDEX_KEY][0],
                             structure_data[AtomicDataDict.EDGE_INDEX_KEY][1],
@@ -342,7 +342,7 @@ def test_repro(
                     # and then sorting the rij _within_ each ij pair---
                     # this is what `order` does for us with the record array
                     nq_ijr.sort(order=["i", "j", "rij"])
-                    lammps_ijr = np.core.records.fromarrays(
+                    lammps_ijr = np.rec.fromarrays(
                         (
                             mi["i"].reshape(-1),
                             mi["j"].reshape(-1),
