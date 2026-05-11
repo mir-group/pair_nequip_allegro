@@ -12,7 +12,7 @@ import torch
 
 from nequip.data import to_ase
 from nequip.utils.global_dtype import _GLOBAL_DTYPE
-from nequip.ase import NequIPCalculator
+from nequip.integrations.ase import NequIPCalculator
 from omegaconf import OmegaConf, open_dict
 from hydra.utils import instantiate
 
