@@ -13,11 +13,17 @@ import torch
 from nequip.data import to_ase
 from nequip.utils.global_dtype import _GLOBAL_DTYPE
 from nequip.ase import NequIPCalculator
-from allegro_pol.integrations.ase import NequIPPolCalculator
 from omegaconf import OmegaConf, open_dict
 from hydra.utils import instantiate
 
 from typing import Dict, Final
+
+try:
+    from allegro_pol.integrations.ase import NequIPPolCalculator
+    ALLEGRO_POL_AVAILABLE = True
+except ImportError:
+    ALLEGRO_POL_AVAILABLE = False
+    NequIPPolCalculator = None
 
 TESTS_DIR = Path(__file__).resolve().parent
 LAMMPS = os.environ.get("LAMMPS", "lmp")
@@ -131,6 +137,8 @@ def deployed_allegro_model(model_dtype, dataset_options):
 
 @pytest.fixture(scope="session")
 def deployed_allegro_pol_model(model_dtype, dataset_options_allegro_pol):
+    if not ALLEGRO_POL_AVAILABLE:
+        pytest.skip("allegro_pol is not installed")
     with tempfile.TemporaryDirectory() as tmpdir:
         yield deployed_model("allegro_pol_bc", tmpdir, model_dtype, dataset_options_allegro_pol)
 
