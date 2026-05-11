@@ -245,11 +245,11 @@ def deployed_model(nequip_or_allegro_or_allegro_pol, tmpdir, dtype, dataset_opti
     if config_name == "allegro_pol":
         calc = NequIPPolCalculator._from_saved_model(
             checkpoint_path,
-            chemical_symbols=config["chemical_symbols"],
+            chemical_species_to_atom_type_map=True,
         )
     else:
         calc = NequIPCalculator._from_saved_model(
             checkpoint_path,
-            chemical_symbols=config["chemical_symbols"],
+            chemical_species_to_atom_type_map=True,
         )
     return tmpdir, calc, structures, config, tol
