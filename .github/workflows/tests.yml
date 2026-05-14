@@ -9,6 +9,11 @@ on:
     branches:
       - main
       - develop
+  schedule:
+    # every Monday at 08:00 America/New_York
+    - cron: "0 8 * * 1"
+      timezone: "America/New_York"
+  workflow_dispatch:
 
 
 concurrency:
