@@ -13,10 +13,6 @@
 
 #ifdef COMPUTE_CLASS
 
-typedef ComputeNequIPAllegro<0,0> ComputeAllegro;
-typedef ComputeNequIPAllegro<0,1> ComputeAllegroPerAtom;
-typedef ComputeNequIPAllegro<1,0> ComputeNequIP;
-typedef ComputeNequIPAllegro<1,1> ComputeNequIPPerAtom;
 
 ComputeStyle(allegro,ComputeAllegro)
 ComputeStyle(allegro/atom,ComputeAllegroPerAtom)
@@ -59,6 +55,11 @@ class ComputeNequIPAllegro : public Compute {
   LAMMPS_NS::PairNequIPAllegro<nequip_mode> *nequip_allegro_pair;
   std::string compute_name;
 };
+
+typedef ComputeNequIPAllegro<0,0> ComputeAllegro;
+typedef ComputeNequIPAllegro<0,1> ComputeAllegroPerAtom;
+typedef ComputeNequIPAllegro<1,0> ComputeNequIP;
+typedef ComputeNequIPAllegro<1,1> ComputeNequIPPerAtom;
 
 }
 
